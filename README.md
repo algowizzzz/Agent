@@ -1,502 +1,558 @@
-# BussGPT: Financial Transcript Analysis and Summarization
+# Enterprise Internal Agent: Documentation
 
-BussGPT is a system for analyzing and summarizing financial earnings call transcripts. It uses state-of-the-art AI models from Anthropic to generate insights from complex financial data.
+## 1. System Overview
 
-## Features
+The Enterprise Internal Agent is a sophisticated AI-powered system designed to provide financial and business data analysis through a conversational interface. It processes natural language queries through a structured pipeline, leveraging various data sources and specialized tools to deliver accurate and contextually appropriate responses.
 
-- **Document Summaries**: Summarize individual earnings call transcripts
-- **Category Summaries**: Generate comprehensive overviews across multiple quarters for a specific company
-- **Complete History**: Analyze the entire history of a company's earnings calls to identify trends, challenges, and opportunities
+## 2. Architecture
 
-## Setup
+### 2.1 Core Components
 
-1. Clone this repository
-2. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-3. Set up MongoDB (must be running on localhost:27017)
-4. Set your Anthropic API key:
-   ```
-   export ANTHROPIC_API_KEY="your-api-key-here"
-   ```
+```
+main.py                    # Entry point and orchestration
+│
+├── agents/                # Agent framework components
+│   └── internal_agent.py  # Main agent orchestration logic
+│
+├── stages/                # Pipeline processing stages
+│   ├── guardrails.py      # Input validation and safety checks
+│   ├── planning.py        # Query analysis and tool selection
+│   ├── execution.py       # Tool execution management
+│   ├── reasoning.py       # Result analysis
+│   └── final_output.py    # Response generation
+│
+├── tools/                 # Primary tool implementations
+│   ├── financial_sql_tool.py     # Financial database access
+│   ├── ccr_sql_tool.py           # Credit risk data access
+│   ├── financial_news_tool.py    # Web search interface
+│   └── earnings_call_tool.py     # Earnings transcript analysis
+│
+├── langchain_tools/       # Sub-tools and components
+│   ├── tool2_category.py          # Category metadata
+│   ├── tool4_metadata_lookup.py   # Document retrieval
+│   └── tool5_transcript_analysis.py # Document analysis
+│
+├── prompts/               # System prompts for various stages
+│   └── reasoning_prompt.txt       # Analysis template
+│
+└── scripts/               # Utilities and data management
+    └── data/              # Local databases
 
-## Usage
+```
 
-### Summarize Individual Transcripts
+### 2.2 Data Flow
+
+1. User query is received via `main.py`
+2. Query passes through sequential pipeline stages:
+    - Guardrails → Planning → Execution → Reasoning → Final Output
+3. Each stage maintains separation of concerns while sharing contextual information
+4. Response is returned as structured JSON with answer and execution summary
+
+## 3. Getting Started
+
+### 3.1 Environment Setup
 
 ```bash
-python save_summary.py --document-id <document_id> --max-words 1000
+# Clone repository
+git clone [repository-url]
+cd enterprise-internal-agent
+
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Unix/MacOS
+# or
+.venv\\Scripts\\activate     # Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Set up environment variables (API keys, database paths)
+cp .env.example .env
+# Edit .env with appropriate values
+
 ```
 
-### Summarize a Specific Company Category
+### 3.2 Database Configuration
+
+The system utilizes multiple databases:
+
+- **Financial Database**: SQLite at `scripts/data/financial_data.db`
+    - Contains historical stock prices, company financials
+    - Tables: companies, daily_stock_prices, dividends, quarterly_balance_sheet, quarterly_income_statement
+- **CCR Database**: SQLite at `scripts/data/ccr_reporting.db`
+    - Contains credit risk information
+    - Tables: limits, products, report_counterparties, report_daily_exposures, securities, transit_mapping
+- **Document Database**: MongoDB
+    - Stores earnings call transcripts and other documents
+    - Collection structure: categories, documents with summaries
+
+### 3.3 First Run
 
 ```bash
-python summarize_category.py --category AAPL [--transcript-limit 100] [--dry-run]
-```
+# Run the main application
+python main.py
 
-The `--transcript-limit` option controls how many of the most recent transcripts to include (default: 100, which is typically all available transcripts).
-
-### Generate All Summaries
-
-```bash
-python generate_all_summaries.py [--mode documents|categories|departments|all] [--dry-run]
-```
-
-Options:
-- `--category AAPL`: Process only the specified category
-- `--dry-run`: Test without making actual API calls
-- `--skip-existing`: Skip categories that already have summaries
-- `--yes`: Skip confirmation prompts
-- `--mode`: Choose which types of summaries to generate
-
-### Extract Summary to Text File
-
-```bash
-python extract_summary_to_file.py --category AAPL --output aapl_summary.txt
-```
-
-## Key Files
-
-- `summarize_category.py`: Generates summaries for a specific company using their earnings call transcripts
-- `extract_summary_to_file.py`: Exports a summary from the database to a text file
-- `generate_all_summaries.py`: Batch processing for all categories/companies
-- `improved_summary_prompts_config.json`: Configuration for summary structure and prompts
-
-## Example Summaries
-
-Example generated summaries are stored in the `summary_examples/` directory.
-
-## Summary Structure
-
-The category summaries typically include:
-
-- Executive Summary
-- Financial Performance
-- Strategic Initiatives
-- Market Positioning
-- Technology & Innovation
-- Regulatory & Compliance
-- Chronological Analysis
-- Segment Performance
-- Geographic Performance
-- Management Commentary
-- Smart Money Quotes
-- Operational Highlights
-- Risk Assessment
-- Transcript Metadata
-
-## Requirements
-
-- Python 3.8+
-- MongoDB
-- Anthropic API key (Claude 3 Opus or Sonnet)
-
-# Earnings Transcript Database
-
-This project imports earnings call transcripts into MongoDB for later use with LLM applications.
-
-## Setup Instructions
-
-1. Install MongoDB
-   - Download and install MongoDB from https://www.mongodb.com/try/download/community
-   - Start the MongoDB service
-
-2. Set up Python environment
-   ```bash
-   # Create a virtual environment (optional but recommended)
-   python -m venv venv
-   
-   # Activate the virtual environment
-   # On macOS/Linux:
-   source venv/bin/activate
-   # On Windows:
-   venv\Scripts\activate
-   
-   # Install required packages
-   pip install -r requirements.txt
-   ```
-
-3. Import transcripts
-   ```bash
-   python import_transcripts.py
-   ```
-
-4. Update documents with metadata (date, quarter, fiscal year)
-   ```bash
-   python update_transcripts.py
-   ```
-
-5. Calculate token counts for LLM usage
-   ```bash
-   python add_token_counts.py
-   ```
-
-6. Restructure database (if needed)
-   ```bash
-   python restructure_db.py
-   ```
-
-## Database Structure
-
-### Collections
-
-The database consists of the following collections:
-
-1. **transcripts**: Contains the actual transcript documents
-   ```
-   {
-     "document_id": "1bb659b7-96c3-4be3-af0a-6e690a89a36e",  // Unique document ID
-     "category_id": "5602d908-a5c5-43c1-b888-975dff32a2c4",  // Reference to category ID
-     "category": "NVDA",                                     // Category name (ticker)
-     "transcript_text": "...",                               // Full transcript text
-     "date": ISODate("2020-08-19T00:00:00Z"),               // Date of earnings call
-     "quarter": 2,                                          // Quarter number (1-4)
-     "fiscal_year": 2021,                                   // Fiscal year
-     "filename": "2020-Aug-19-NVDA.txt",                    // Original filename
-     "token_count": 11557                                   // Number of tokens in the text
-   }
-   ```
-
-2. **document_summaries**: Contains summaries of individual transcripts
-   ```
-   {
-     "document_id": "ae5e9f7b-f64a-4be4-8fa2-8d6989a1d6e3",  // ID of the source document
-     "category_id": "AMZN",                                  // Category identifier
-     "summary_text": "...",                                  // The generated summary
-     "wordcount": 1025,                                      // Word count of the summary
-     "input_tokens": 7982,                                   // Tokens sent to the API
-     "output_tokens": 1234,                                  // Tokens received from the API
-     "last_updated": ISODate("2023-04-19T12:00:00Z")        // Timestamp
-   }
-   ```
-
-3. **category_summaries**: Contains cross-quarter analyses for each company
-   ```
-   {
-     "category_id": "AMZN",                                 // Category identifier
-     "summary_text": "...",                                 // The generated summary
-     "wordcount": 1548,                                     // Word count of the summary
-     "transcript_count": 5,                                 // Number of transcripts analyzed
-     "input_tokens": 15735,                                 // Tokens sent to the API
-     "output_tokens": 2541,                                 // Tokens received from the API
-     "last_updated": ISODate("2023-04-19T12:30:00Z")        // Timestamp
-   }
-   ```
-
-4. **department_summaries**: Contains sector-level summaries across companies
-   ```
-   {
-     "department_id": "TECH",                              // Department/sector identifier
-     "summary": {                                          // Structured summary data
-       "strategic_summary": "...",
-       "cross_category_comparisons": ["...", "..."],
-       "key_risks": ["...", "..."],
-       "opportunities": ["...", "..."],
-       "category_relationships": [{...}],
-       "priority_categories": ["AAPL", "AMZN"]
-     },
-     "last_updated": ISODate("2023-04-19T13:00:00Z"),      // Timestamp
-     "model": "claude-3-haiku-20240307",                   // Model used
-     "category_ids": ["AAPL", "AMZN", "INTC", "MU"]        // Categories included
-   }
-   ```
-
-### Indices
-
-The following indices are created for efficient querying:
-- Text index on `transcript_text` field for full-text search
-- Index on `category` field for filtering by company
-- Index on `date` field for filtering by time period
-- Index on `category_id` field for joining with categories
-- Index on `token_count` field for filtering by token count
-
-## Querying the Database
-
-### General Queries
-
-The `query_new_structure.py` script provides a command-line interface for searching the database:
-
-```bash
-# Show database statistics (including token counts)
-python query_new_structure.py --stats
-
-# List all available categories
-python query_new_structure.py --list-categories
-
-# Search by category (most recent first)
-python query_new_structure.py --category NVDA --limit 5
-
-# Search by date range
-python query_new_structure.py --start-date 2019-01-01 --end-date 2019-12-31
-
-# Search by text content (uses MongoDB text search)
-python query_new_structure.py --text "artificial intelligence" --limit 3
-
-# Combined search (category + text)
-python query_new_structure.py --category NVDA --text "deep learning" --limit 2
-
-# Show content previews with search results
-python query_new_structure.py --category NVDA --limit 1 --verbose
-```
-
-### Token-Based Queries
-
-The `query_by_tokens.py` script allows querying based on token count, which is useful for LLM usage:
-
-```bash
-# Show token count statistics
-python query_by_tokens.py --stats
-
-# Find documents with more than 15,000 tokens
-python query_by_tokens.py --min-tokens 15000
-
-# Find documents with fewer than 8,000 tokens
-python query_by_tokens.py --max-tokens 8000
-
-# Find documents within a token range
-python query_by_tokens.py --min-tokens 10000 --max-tokens 12000
-
-# Combine token count with category filtering
-python query_by_tokens.py --min-tokens 12000 --category NVDA --limit 3
-```
-
-## Hierarchical Summarization System
-
-This project implements a three-level hierarchical summarization system for earnings call transcripts:
-
-### Summarization Levels
-
-1. **Document Summaries** - Individual transcript summaries
-2. **Category Summaries** - Company-level summaries across multiple earnings calls
-3. **Department Summaries** - Industry/sector-level summaries across multiple companies
-
-### Architecture Flow
+# Example queries to test
+"What was the closing price for MSFT on October 25, 2018?"
+"What is the rating for JPMorgan?"
+"Provide a brief summary of the MSFT Q4 2017 earnings call."
 
 ```
-Transcripts → Document Summaries → Category Summaries → Department Summaries
-    (Raw)          (Level 1)           (Level 2)           (Level 3)
+
+## 4. Core Components Deep Dive
+
+### 4.1 Pipeline Stages
+
+### Guardrails Stage
+
+- **Purpose**: Validate queries against policy guidelines
+- **Implementation**: `stages/guardrails.py`
+- **Key Details**:
+    - Uses Claude to evaluate query safety and policy compliance
+    - Returns ALLOW/BLOCK decision with reasoning
+    - Currently configured to only allow enterprise financial and public data queries
+
+### Planning Stage
+
+- **Purpose**: Generate execution plan based on query intent
+- **Implementation**: `stages/planning.py`
+- **Key Details**:
+    - Analyzes query to determine required tools
+    - Creates numbered plan specifying exact tool calls
+    - Presents plan for user confirmation
+
+### Execution Stage
+
+- **Purpose**: Execute the approved plan by calling tools
+- **Implementation**: `stages/execution.py`
+- **Key Details**:
+    - Processes each step in sequence
+    - Passes natural language inputs to appropriate tools
+    - Collects and formats results for reasoning stage
+
+### Reasoning Stage
+
+- **Purpose**: Analyze execution results to formulate response
+- **Implementation**: `stages/reasoning.py`
+- **Key Details**:
+    - Uses `reasoning_prompt.txt` template
+    - Evaluates if query has been fully answered
+    - Structures analysis for final output
+
+### Final Output Stage
+
+- **Purpose**: Generate structured response
+- **Implementation**: `stages/final_output.py`
+- **Key Details**:
+    - Creates JSON with answer and execution summary
+    - Formats response for optimal readability
+
+### 4.2 Tools
+
+### FinancialSQL
+
+- **Purpose**: Query financial database for historical metrics
+- **Implementation**: `tools/financial_sql_tool.py`
+- **Key Details**:
+    - Automatically generates SQL from natural language
+    - Access to company financial data, stock prices
+    - Query templating for common financial questions
+
+### CCRSQL
+
+- **Purpose**: Query credit risk database
+- **Implementation**: `tools/ccr_sql_tool.py`
+- **Key Details**:
+    - Access to credit ratings, exposure, limits, etc.
+    - Handles complex relationships between financial entities
+
+### FinancialNewsSearch
+
+- **Purpose**: Search for current financial information
+- **Implementation**: `tools/financial_news_tool.py`
+- **Key Details**:
+    - Web search integration for real-time data
+    - Returns formatted article summaries
+
+### EarningsCallSummary
+
+- **Purpose**: Process earnings call transcripts
+- **Implementation**: `tools/earnings_call_tool.py`
+- **Key Details**:
+    - Complex multi-agent system with sub-tools
+    - MongoDB integration for document retrieval
+    - Multi-step analysis to generate comprehensive summaries
+
+## 5. Productionalization Recommendations
+
+### 5.1 Code Improvements
+
+1. **Deprecation Warnings**
+    - Update LangChain imports to resolve deprecation warnings:
+        
+        ```python
+        # Replace deprecated imports
+        from langchain.sql_database import SQLDatabase
+        # With
+        from langchain_community.utilities import SQLDatabase
+        
+        ```
+        
+2. **Database Schema Issues**
+    - Resolve circular dependencies in CCR database tables
+    - Consider schema refactoring to improve query performance
+3. **Error Handling**
+    - Implement more robust error handling throughout the pipeline
+    - Add retry logic for external API calls and database queries
+4. **Testing**
+    - Add comprehensive unit tests for each component
+    - Implement integration tests for the full pipeline
+    - Create test fixtures for reproducible results
+
+### 5.2 Infrastructure Requirements
+
+1. **Compute Resources**
+    - CPU: 4+ cores for concurrent processing
+    - RAM: 8GB+ for handling large document processing
+    - Storage: 20GB+ for databases and logs
+2. **External Dependencies**
+    - Anthropic API (Claude 3.5 Sonnet)
+    - MongoDB instance
+    - Web search API access
+3. **Security Considerations**
+    - API key rotation policy
+    - Encryption for sensitive data
+    - Access controls for database connections
+
+### 5.3 Scaling Strategies
+
+1. **Horizontal Scaling**
+    - Containerize application with Docker
+    - Deploy with Kubernetes for orchestration
+    - Implement load balancing for multiple instances
+2. **Performance Optimization**
+    - Cache common queries and responses
+    - Implement background processing for complex operations
+    - Add database indexing for frequently accessed fields
+3. **Monitoring and Observability**
+    - Enhance logging for production debugging
+    - Implement metrics collection (query latency, success rates)
+    - Add alerting for system failures
+
+## 6. Known Issues and Limitations
+
+1. **Data Freshness**
+    - Financial database contains historical data (2016-2020)
+    - Real-time stock data requires additional integration
+2. **Tool Selection Accuracy**
+    - Planning stage occasionally selects suboptimal tools
+    - Document retrieval sometimes identifies incorrect documents
+3. **Response Formatting**
+    - Occasionally includes technical details in user-facing responses
+    - Some formatting inconsistencies in complex responses
+4. **External Dependencies**
+    - LangChain deprecation warnings need addressing
+    - MongoDB circular dependency warnings
+
+## 7. Development Workflow
+
+1. **Code Contribution Process**
+    - Branch from `main` for new features/fixes
+    - Follow naming convention: `feature/description` or `fix/issue-id`
+    - Submit PRs with comprehensive descriptions
+2. **Testing Requirements**
+    - All new code must include unit tests
+    - Integration tests for full pipeline modifications
+    - Performance benchmarks for database changes
+3. **Documentation Standards**
+    - Update [README.md](http://readme.md/) for high-level changes
+    - Document all new functions with docstrings
+    - Keep this onboarding doc updated for architectural changes
+
+## 8. Contact and Support
+
+- **Original Developer**: [Your Name]
+- **Project Lead**: [Project Lead Name]
+- **Support Email**: [support@example.com]
+- **Repository**: [repository-url]
+- **Documentation**: [docs-url]
+
+## 9. Appendix
+
+### A. Example Queries
+
+```
+"What was the revenue for AAPL in Q3 2019?"
+"What is the credit exposure for Deutsche Bank?"
+"Summarize the earnings call for GOOG Q2 2018"
+"What are the latest news about interest rates?"
+
 ```
 
-### Unified Summarization Tool
+### B. Tool Selection Guidelines
 
-The `generate_summaries.py` script provides a unified interface for generating all levels of summaries:
+| Query Type | Recommended Tool | Example |
+| --- | --- | --- |
+| Historical Financial Data | FinancialSQL | "Revenue for AAPL in 2019" |
+| Credit Risk Information | CCRSQL | "Credit rating for JPMorgan" |
+| Current News/Events | FinancialNewsSearch | "Latest tariff news" |
+| Earnings Call Information | EarningsCallSummary | "Summary of MSFT earnings" |
 
-```bash
-# Display current summary statistics
-python generate_summaries.py --stats
+### C. Database Schema Diagrams
 
-# Generate document summary
-python generate_summaries.py --document "ae5e9f7b-f64a-4be4-8fa2-8d6989a1d6e3"
+[Include diagrams of your database schemas here]
 
-# Generate category summary
-python generate_summaries.py --category AAPL
+---
 
-# Generate department summary
-python generate_summaries.py --department TECH --categories AAPL AMZN INTC MU
+# Technical Summary: Enterprise Internal Agent Flow
 
-# Batch generate document summaries
-python generate_summaries.py --all-documents --filter-category NVDA --limit 5
+## System Overview
 
-# Batch generate category summaries
-python generate_summaries.py --all-categories --categories AAPL AMZN INTC MU
+The Enterprise Internal Agent is an orchestrated system handling financial and business data queries through a multi-stage pipeline. Each query passes through validation, planning, execution, reasoning, and output stages, with each stage leveraging specialized tools.
 
-# Do a dry run to see what would be generated
-python generate_summaries.py --all-departments --dry-run
-```
+## Query Processing Pipeline
 
-For more detailed information about the hierarchical summarization system, see [HIERARCHICAL_SUMMARIZATION.md](HIERARCHICAL_SUMMARIZATION.md).
+### 1. Query Ingestion and Validation
 
-## Transcript Summarization with Claude
+- All queries enter via `main.py` and are processed by the Guardrails stage
+- LLMChain with Claude 3.5 Sonnet performs policy compliance validation
+- Only enterprise financial and public data queries are allowed
 
-The project includes additional tools to summarize earnings call transcripts using Claude:
+### 2. Planning Stage
 
-### 1. Configurable Summarization System
+- System analyzes the query intent and selects appropriate tool(s)
+- Generates a numbered execution plan specifying exact tool calls
+- Plan is presented to user for approval before execution
 
-The project uses a modular, configurable summarization system with templates in `summary_prompts_config.json`:
+### 3. Execution Stage
 
-```bash
-# Set your API key as an environment variable
-export ANTHROPIC_API_KEY="your_api_key_here"
+- Processes approved plan by calling specified tools in sequence
+- Each tool performs specialized functions depending on query requirements
 
-# Use the helper script to generate summaries
-./summarize.sh -c NVDA            # Summarize most recent NVDA transcript
-./summarize.sh -d ae5e9f7b-f64a-4be4-8fa2-8d6989a1d6e3  # Summarize specific document
-./summarize.sh -c NVDA -C         # Generate NVDA category summary
-./summarize.sh -c AAPL -o apple_summary.txt  # Save to file
-```
+### 4. Reasoning Stage
 
-### 2. Real Summarization with Claude API
+- Analyzes execution results to formulate coherent response
+- Identifies if information is sufficient or if additional context is needed
+- Structures findings for final output generation
 
-```bash
-# Set your Anthropic API key in the run_summarizer.sh script
-nano run_summarizer.sh
+### 5. Final Output Stage
 
-# Make the script executable
-chmod +x run_summarizer.sh
+- Generates structured JSON response with answer and execution summary
+- Formats information for optimal readability and completeness
 
-# Run the summarizer
-./run_summarizer.sh --category NVDA
-```
+---
 
-You can also run the script directly:
-```bash
-# Set your API key as an environment variable
-export ANTHROPIC_API_KEY="your_api_key_here"
+## Tools and Subsystems
 
-# Run the summarizer
-python summarize_transcript.py --category AAPL
-```
+### Primary Tools
 
-### 3. Demo Summarizer (No API Key Required)
+1. **FinancialSQL**
+    - Queries financial database for historical metrics (2016-2020)
+    - Example: Retrieved MSFT closing price ($101.44) on 10/25/2018
+    - Automatically generates SQL based on natural language input
+2. **CCRSQL**
+    - Accesses Customer Credit Risk database
+    - Example: Retrieved JPMorgan Chase credit rating (AA-)
+    - Handles complex SQL relationships between financial entities
+3. **FinancialNewsSearch**
+    - Performs web searches for current financial information
+    - Example: Located latest tariff news affecting the energy sector
+    - Returns article titles, snippets, and links
+4. **EarningsCallSummary**
+    - Complex multi-agent system with internal tools
+    - Analyzes earnings call transcripts for specific companies
+    - Example: Provided MSFT Q4 2017 earnings call summary with financial performance, initiatives, and outlook
 
-For demonstration purposes, you can use the demo summarizer which doesn't require an API key:
+### EarningsCallSummary Sub-tools
 
-```bash
-python summarize_demo.py --category MSFT
-```
+1. **category_tool**: Retrieves high-level category summaries for companies
+2. **metadata_lookup_tool**: Identifies relevant document IDs from MongoDB
+3. **document_content_analysis_tool**: Analyzes specific document content
 
-Additional options:
-```bash
-# Summarize by document ID
-python summarize_demo.py --document-id "1bb659b7-96c3-4be3-af0a-6e690a89a36e"
+## Technical Implementation
 
-# Adjust maximum words in summary
-python summarize_demo.py --category GOOGL --max-words 30
-```
+- Built with LangChain components with Claude 3.5 Sonnet as the base LLM
+- MongoDB for document storage and retrieval
+- SQLite databases for financial and CCR data
+- Modular design with separate stages and tools for maintainability
+- Detailed logging for debugging and transparency
 
-### 4. Batch Summary Generation
+## Performance Observations
 
-To generate summaries for multiple documents or categories at once, you can use the provided batch processing scripts:
+- Query processing typically takes 1-2 seconds per tool call
+- Complex multi-agent workflows (like EarningsCallSummary) require multiple LLM calls
+- The system demonstrates robust error handling and graceful recovery from inconsistencies
+- MongoDB warnings regarding circular dependencies in some database relationships should be addressed
 
-```bash
-# Generate summaries for all documents
-python generate_all_summaries.py --documents
+## Sample Query Flow
 
-# Generate summaries for all categories
-python generate_all_summaries.py --categories
+For query "What is the rating for JPMorgan?":
 
-# Generate summaries for a specific category's documents
-python generate_all_summaries.py --documents --category NVDA
+1. Guardrails validates query is permitted (financial data)
+2. Planning identifies CCRSQL as appropriate tool
+3. CCRSQL generates and executes SQL: `SELECT rating FROM report_counterparties WHERE short_name = 'JPMorgan Chase' LIMIT 10`
+4. Result `[('AA-',)]` retrieved from database
+5. Reasoning analyzes and contextualizes the rating information
+6. Final structured answer explains JPMorgan Chase has AA- rating
 
-# Limit the number of documents to process
-python generate_all_summaries.py --documents --limit 10
-```
+---
 
-## Token Counting for LLM Usage
+# Enterprise Internal Agent: Analysis of Query Processing Steps
 
-The project includes functionality for calculating and storing token counts for each transcript, which is useful for:
+Based on the logs from our test runs, here's a detailed breakdown of the processing steps for each query:
 
-1. **LLM Context Window Planning**: Knowing how many tokens each transcript contains helps determine if it fits within an LLM's context window.
+## Query 1: "What was the closing price for MSFT on October 25, 2018?"
 
-2. **Cost Estimation**: Token counts can be used to estimate API costs when using services like Claude or GPT.
+1. **Guardrails Stage**
+    - System checked query against safety policy
+    - Claude determined query was about public financial data
+    - Policy validation result: ALLOW
+2. **Planning Stage**
+    - System analyzed query and available tools
+    - Selected tool: `FinancialSQL`
+    - Generated plan: "1. FinancialSQL: What was the closing price for MSFT on October 25, 2018?"
+    - User confirmed plan
+3. **Execution Stage**
+    - LLM formatted the tool call
+    - Tool initialized with DB path: `/Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/financial_data.db`
+    - Generated SQL: `SELECT close FROM daily_stock_prices WHERE ticker = 'MSFT' AND date = '2018-10-25' LIMIT 1`
+    - Executed SQL query (processing time: 1.64s)
+    - Result retrieved: `[(101.43556213378906,)]`
+4. **Reasoning Stage**
+    - System analyzed query result
+    - Verified all parts of question were answered
+    - Determined rounding to nearest cent was appropriate
+5. **Final Output Stage**
+    - Generated formatted JSON response
+    - Final answer: MSFT closing price was $101.44 on October 25, 2018
+    - Included execution summary for transparency
 
-3. **Optimizing Queries**: You can target shorter or longer transcripts depending on your use case.
+## Query 2: "What is the rating for JPMorgan?"
 
-Token counts are calculated using the `cl100k_base` tokenizer, which is compatible with Claude models.
+1. **Guardrails Stage**
+    - System checked query against safety policy
+    - Claude determined query was about public financial data
+    - Policy validation result: ALLOW
+2. **Planning Stage**
+    - System analyzed query and available tools
+    - Selected tool: `CCRSQL` (recognized this was a credit rating query)
+    - Generated plan: "1. CCRSQL: What is the current credit rating for JPMorgan Chase?"
+    - User confirmed plan
+3. **Execution Stage**
+    - LLM formatted the tool call
+    - Tool initialized with DB path: `/Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/ccr_reporting.db`
+    - Generated SQL: `SELECT rating FROM report_counterparties WHERE short_name = 'JPMorgan Chase' LIMIT 10`
+    - Warning: Circular dependencies in database detected
+    - Executed SQL query (processing time: 1.18s)
+    - Result retrieved: `[('AA-',)]`
+4. **Reasoning Stage**
+    - System analyzed query result
+    - Noted the company name in database is "JPMorgan Chase" vs. "JPMorgan" in query
+    - Interpreted "AA-" rating in financial context
+5. **Final Output Stage**
+    - Generated formatted JSON response
+    - Final answer: JPMorgan Chase has an AA- credit rating
+    - Explained rating indicates strong capacity to meet financial commitments
 
-## Usage with LLMs
+## Query 3: "Provide a brief summary of the MSFT Q4 2017 earnings call."
 
-These transcripts can be used with LLMs for various analytical tasks:
-- Sentiment analysis of earnings calls
-- Tracking technology trends over time
-- Comparing how different companies discuss similar topics
-- Extracting financial guidance and performance metrics
-- Analyzing executive communication styles
+1. **Guardrails Stage**
+    - System checked query against safety policy
+    - Claude determined query was about public financial data
+    - Policy validation result: ALLOW
+2. **Planning Stage**
+    - System analyzed query and available tools
+    - Selected tool: `EarningsCallSummary`
+    - Generated plan: "1. EarningsCallSummary: Provide a summary of Microsoft's Q4 2017 earnings call..."
+    - User confirmed plan
+3. **Execution Stage (Complex Multi-Agent)**
+    - Tool initialized agent execution with multiple internal steps:
+    a. Called `category_tool` to fetch high-level Microsoft summary
+    b. Called `metadata_lookup_tool` to identify relevant documents in MongoDB:
+        - Fetched metadata for 188 documents across 10 categories
+        - Found 2 relevant document IDs for MSFT Q4 2017
+        c. Called `document_content_analysis_tool` on first document
+        - System analyzed incorrect document (Cisco earnings call)
+        d. Called `document_content_analysis_tool` on second document
+        - Successfully retrieved Microsoft Q4 2017 earnings data
+    - Agent synthesized final report covering:
+        - Financial performance ($24.7B revenue, 10% growth)
+        - Strategic initiatives (Microsoft 365, Azure expansion)
+        - Management outlook (cloud revenue goals)
+4. **Reasoning Stage**
+    - System analyzed the synthesized earnings call summary
+    - Determined information was complete and relevant
+5. **Final Output Stage**
+    - Generated formatted JSON response
+    - Final answer: Comprehensive summary of Microsoft's Q4 2017 performance
+    - Included full tools and sub-tools execution summary
 
-# BussGPT
+## Query 4: "Latest tariff news impacting energy sector"
 
-BussGPT provides an AI-powered interface for analyzing business transcripts to extract insights and summaries. This tool processes earnings call transcripts and can generate hierarchical summaries from the document level to departments.
+1. **Guardrails Stage**
+    - System checked query against safety policy
+    - Claude determined query was about public financial/economic data
+    - Policy validation result: ALLOW
+2. **Planning Stage**
+    - System analyzed query and available tools
+    - Selected tool: `FinancialNewsSearch`
+    - Generated plan: "1. FinancialNewsSearch: Latest tariff news impacting energy sector"
+    - User confirmed plan
+3. **Execution Stage**
+    - LLM formatted the tool call
+    - Tool performed web search for tariff news related to energy sector
+    - Retrieved 3 relevant articles about Trump tariffs on batteries and solar industry
+4. **Reasoning Stage**
+    - System analyzed the search results
+    - Identified key themes: impacts on utilities, energy storage, solar industry
+    - Noted limitations in available information (rates, dates, global impact)
+5. **Final Output Stage**
+    - Generated formatted JSON response
+    - Final answer: Detailed overview of tariff impacts on energy sector
+    - Highlighted implications for grid reliability, solar companies, and renewable adoption
 
-## Proposed Directory Structure
-The codebase will be restructured to improve organization and maintainability:
+Each query demonstrates the system's consistent processing pipeline while adapting to different information needs and data sources.
 
-```
-BussGPT/
-├── core/                     # Core functionality 
-│   ├── db/                   # Database operations
-│   ├── models/               # Data models and schemas
-│   └── api/                  # API endpoints
-├── tools/                    # Tool modules
-│   ├── langchain_tools/      # LangChain integration
-│   └── summary_tools/        # Summarization utilities
-├── scripts/                  # Maintenance and utility scripts
-│   ├── cleanup/              # Database and file cleanup
-│   └── import/               # Data import utilities
-├── summarizers/              # Summary generation modules
-│   ├── document/             # Document-level summarizers
-│   ├── category/             # Category-level summarizers
-│   └── department/           # Department-level summarizers
-├── utils/                    # Utility functions
-├── config/                   # Configuration files
-├── tests/                    # Test modules
-├── data/                     # Data storage (non-version controlled)
-│   └── transcripts/          # Transcript storage
-├── logs/                     # Log files
-└── web/                      # Web interface (if applicable)
-```
+---
 
-# BussGPT Agent UI
+# **Added later**
 
-A chat interface for interacting with the BussGPT agent.
+### Direct Response Tool
 
-## Features
+Let's check if there's a tool for direct response in the codebase. First, I'll look at the tool implementations:
 
-- Real-time chat with the BussGPT agent
-- View agent's thinking process
-- Clean, modern interface
-- Socket.IO-based communication
+Ran tool
+Let's also check if there might be a direct answer tool implementation elsewhere in the codebase, like in the agents or stages directory:
 
-## Setup Instructions
+Ran tool
+Let's look at the agent file to understand how the DirectAnswer tool is implemented:
 
-### Backend Setup
+Read file: agents/internal_agent.py
+Let's also look at the execution stage to understand how the DirectAnswer tool works:
 
-1. Create and activate a virtual environment:
-   ```
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
+Read file: stages/execution.py
+Let's also examine the reasoning stage to see how it handles the DirectAnswer tool:
 
-2. Install required packages:
-   ```
-   pip install flask flask-socketio flask-cors
-   ```
+Read file: stages/reasoning.py
+Based on my review of the codebase, I can confirm that there is indeed a tool for direct response called `DirectAnswer`. Here's how it works:
 
-3. Run the backend server:
-   ```
-   python server.py
-   ```
-   The server will run on http://localhost:5000
+1. **Tool Implementation**:
+    - The `DirectAnswer` tool is implemented in `agents/internal_agent.py` as a simple function called `run_direct_answer`
+    - Unlike other tools that query databases or external resources, this tool simply returns a formatted string: `"DIRECT_RESPONSE_REQUESTED: {query}"`
+    - It's registered alongside other tools with the description: "Use ONLY when no other tools are needed and the LLM can answer directly without external data. For general knowledge questions, writing emails, explaining concepts, etc."
+2. **Execution Stage Handling**:
+    - In `stages/execution.py`, when the `DirectAnswer` tool is called, it simply marks the step as successful and records that a direct response was requested
+    - It doesn't perform any complex operations like the other tools (SQL queries, web searches, etc.)
+3. **Reasoning Stage Handling**:
+    - The special processing happens in `stages/reasoning.py`
+    - When the reasoning stage detects "DIRECT_RESPONSE_REQUESTED" in the execution results, it bypasses the normal reasoning process
+    - Instead, it extracts the original instruction/query and creates a special direct response prompt
+    - It then invokes the LLM directly with this prompt to generate a comprehensive response without external data
+4. **Final Output Stage**:
+    - In `stages/final_output.py`, there's additional logic to handle the DirectAnswer tool results differently in the final output formatting
 
-### Frontend Setup
+This tool is designed for situations where the query can be answered directly by the LLM's knowledge without needing external data sources - for example, general knowledge questions, explanations of concepts, or generating content like emails or summaries that don't require retrieval from databases.
 
-1. Navigate to the Angular app directory:
-   ```
-   cd agent-ui/agent-ui
-   ```
+The Direct Answer tool serves an important purpose in the agent's workflow - it allows the system to efficiently handle queries that don't require external data retrieval, saving resources and providing faster responses for appropriate questions.
 
-2. Install dependencies:
-   ```
-   npm install
-   ```
-
-3. Start the development server:
-   ```
-   npm start
-   ```
-   The application will be available at http://localhost:4200
-
-## Usage
-
-1. Open your browser and navigate to http://localhost:4200
-2. Type a message in the input field and press Enter or click Send
-3. The agent will respond and show its thinking process
-
-## Development
-
-- Backend: Flask + Socket.IO
-- Frontend: Angular 19 + Socket.IO client
-
-## License
-
-MIT 
+---
