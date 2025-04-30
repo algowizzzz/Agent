@@ -515,4 +515,44 @@ Each query demonstrates the system's consistent processing pipeline while adapti
 
 ---
 
+# **Added later**
+
+### Direct Response Tool
+
+Let's check if there's a tool for direct response in the codebase. First, I'll look at the tool implementations:
+
+Ran tool
+Let's also check if there might be a direct answer tool implementation elsewhere in the codebase, like in the agents or stages directory:
+
+Ran tool
+Let's look at the agent file to understand how the DirectAnswer tool is implemented:
+
+Read file: agents/internal_agent.py
+Let's also look at the execution stage to understand how the DirectAnswer tool works:
+
+Read file: stages/execution.py
+Let's also examine the reasoning stage to see how it handles the DirectAnswer tool:
+
+Read file: stages/reasoning.py
+Based on my review of the codebase, I can confirm that there is indeed a tool for direct response called `DirectAnswer`. Here's how it works:
+
+1. **Tool Implementation**:
+    - The `DirectAnswer` tool is implemented in `agents/internal_agent.py` as a simple function called `run_direct_answer`
+    - Unlike other tools that query databases or external resources, this tool simply returns a formatted string: `"DIRECT_RESPONSE_REQUESTED: {query}"`
+    - It's registered alongside other tools with the description: "Use ONLY when no other tools are needed and the LLM can answer directly without external data. For general knowledge questions, writing emails, explaining concepts, etc."
+2. **Execution Stage Handling**:
+    - In `stages/execution.py`, when the `DirectAnswer` tool is called, it simply marks the step as successful and records that a direct response was requested
+    - It doesn't perform any complex operations like the other tools (SQL queries, web searches, etc.)
+3. **Reasoning Stage Handling**:
+    - The special processing happens in `stages/reasoning.py`
+    - When the reasoning stage detects "DIRECT_RESPONSE_REQUESTED" in the execution results, it bypasses the normal reasoning process
+    - Instead, it extracts the original instruction/query and creates a special direct response prompt
+    - It then invokes the LLM directly with this prompt to generate a comprehensive response without external data
+4. **Final Output Stage**:
+    - In `stages/final_output.py`, there's additional logic to handle the DirectAnswer tool results differently in the final output formatting
+
+This tool is designed for situations where the query can be answered directly by the LLM's knowledge without needing external data sources - for example, general knowledge questions, explanations of concepts, or generating content like emails or summaries that don't require retrieval from databases.
+
+The Direct Answer tool serves an important purpose in the agent's workflow - it allows the system to efficiently handle queries that don't require external data retrieval, saving resources and providing faster responses for appropriate questions.
+
 ---
