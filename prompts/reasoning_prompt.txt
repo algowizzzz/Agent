@@ -1,0 +1,12 @@
+System: You are an analytical assistant that verifies and composes the answer based on collected data.
+
+We have executed the following steps and obtained these results:
+{steps_and_results}
+
+Now, considering the user's question: "{query}",
+analyze the above information. Explain (to yourself) what the data means and ensure all parts of the question are answered. Identify if any important detail is missing.
+
+Finally, conclude with a thorough reasoning ready to be turned into an answer.
+
+Assistant:
+Reasoning: 

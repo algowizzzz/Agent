@@ -1,0 +1,79 @@
+2025-04-29 07:53:58,083 - __main__ - INFO - Logging detailed output to: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/agent_tests/../../test_results/run_20250429_075358_04bb95a2/log.txt
+2025-04-29 07:53:58,083 - __main__ - INFO - Starting agent test run for query: 'Which counterparties exceeded their Gross Exposure limit between December 1 and December 5, 2022?'
+2025-04-29 07:53:58,083 - __main__ - INFO - --- Attempting to get API key from environment... ---
+2025-04-29 07:53:58,083 - __main__ - INFO - --- ANTHROPIC_API_KEY loaded successfully. ---
+2025-04-29 07:53:58,083 - langchain_tools.logger - INFO - Initialized AgentLogger for agent HierarchicalAgent_v3_Refactored, conversation b9b7dc0b-a2e3-452f-ab7f-1006dab81502
+2025-04-29 07:53:58,083 - langchain_tools.agent - DEBUG - Initializing LLM
+2025-04-29 07:53:58,083 - langchain_tools.agent - DEBUG - Initializing LLM
+2025-04-29 07:53:58,083 - langchain_tools.tool_factory - INFO - Initializing ChatAnthropic with model: claude-3-5-sonnet-20240620
+2025-04-29 07:53:58,084 - langchain_tools.agent - DEBUG - ChatAnthropic instance created successfully via factory
+2025-04-29 07:53:58,084 - langchain_tools.agent - INFO - LLM initialized successfully
+2025-04-29 07:53:58,084 - langchain_tools.agent - DEBUG - Initializing tools for Master Agent
+2025-04-29 07:53:58,084 - langchain_tools.tool_factory - INFO - [Financial Tool] Connecting to SQL Database: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/financial_data.db
+2025-04-29 07:53:58,103 - langchain_tools.tool_factory - INFO - [Financial Tool] SQLDatabase connection successful. Tables: ['companies', 'daily_stock_prices', 'dividends', 'quarterly_balance_sheet', 'quarterly_income_statement', 'stock_splits']
+2025-04-29 07:53:58,106 - langchain_tools.tool_factory - INFO - [Financial Tool] Generated DB Metadata Hints for LLM.
+2025-04-29 07:53:58,106 - langchain_tools.tool_factory - INFO - [CCR Tool] Connecting to SQL Database: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/ccr_reporting.db
+2025-04-29 07:53:58,113 - langchain_tools.tool_factory - WARNING - [CCR Tool] Error getting metadata hints: no such column: product_type
+2025-04-29 07:53:58,113 - langchain_tools.tool_factory - INFO - [CCR Tool] SQLDatabase connection successful. Tables: ['limits', 'products', 'report_counterparties', 'report_daily_exposures', 'securities', 'transit_mapping']
+2025-04-29 07:53:58,113 - langchain_tools.tool_factory - INFO - [Transcript Agent Tool] Initializing...
+2025-04-29 07:53:58,113 - langchain_tools.tool4_metadata_lookup - INFO - Metadata Tool Factory: Creating tool instance.
+2025-04-29 07:53:58,113 - langchain_tools.tool4_metadata_lookup - INFO - Metadata Tool Factory: LLM initialized successfully.
+2025-04-29 07:53:58,113 - langchain_tools.tool_factory - INFO - [Transcript Agent Tool] Internal tools created: ['category_tool', 'metadata_lookup_tool', 'document_content_analysis_tool']
+2025-04-29 07:53:58,115 - langchain_tools.agent_config - INFO - --- Starting dynamic tool description generation... ---
+2025-04-29 07:53:58,115 - langchain_tools.agent_config - INFO - --- Attempting to fetch DB examples for: financial_data.db ---
+2025-04-29 07:53:58,115 - langchain_tools.agent_config - DEBUG - Tried DB path (not found): /Users/saadahmed/Desktop/Apps/BussGPT/financial_data.db
+2025-04-29 07:53:58,115 - langchain_tools.agent_config - INFO - Using DB path: /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db
+2025-04-29 07:53:58,115 - langchain_tools.agent_config - INFO - --- Connecting to DB at: /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db ---
+2025-04-29 07:53:58,115 - langchain_tools.agent_config - INFO - --- Executing query: SELECT DISTINCT ticker FROM daily_stock_prices WHERE ticker IS NOT NULL ORDER BY ticker LIMIT 3 on financial_data.db ---
+2025-04-29 07:53:58,115 - langchain_tools.agent_config - ERROR - --- SQLITE ERROR fetching examples from financial_data.db: no such table: daily_stock_prices ---
+Traceback (most recent call last):
+  File "/Users/saadahmed/Desktop/Apps/BussGPT/langchain_tools/agent_config.py", line 80, in _fetch_db_examples
+    cursor.execute(query) # Query already includes LIMIT
+    ~~~~~~~~~~~~~~^^^^^^^
+sqlite3.OperationalError: no such table: daily_stock_prices
+2025-04-29 07:53:58,116 - langchain_tools.agent_config - INFO - --- Closing DB connection for: /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db ---
+2025-04-29 07:53:58,116 - langchain_tools.agent_config - INFO - --- Finished fetching DB examples for: financial_data.db ---
+2025-04-29 07:53:58,116 - langchain_tools.agent_config - INFO - --- Attempting to fetch DB examples for: ccr_reporting.db ---
+2025-04-29 07:53:58,116 - langchain_tools.agent_config - INFO - Using DB path: /Users/saadahmed/Desktop/Apps/BussGPT/ccr_reporting.db
+2025-04-29 07:53:58,116 - langchain_tools.agent_config - INFO - --- Connecting to DB at: /Users/saadahmed/Desktop/Apps/BussGPT/ccr_reporting.db ---
+2025-04-29 07:53:58,116 - langchain_tools.agent_config - INFO - --- Executing query: SELECT DISTINCT short_name FROM report_counterparties WHERE short_name IS NOT NULL ORDER BY short_name LIMIT 3 on ccr_reporting.db ---
+2025-04-29 07:53:58,117 - langchain_tools.agent_config - ERROR - --- SQLITE ERROR fetching examples from ccr_reporting.db: no such table: report_counterparties ---
+Traceback (most recent call last):
+  File "/Users/saadahmed/Desktop/Apps/BussGPT/langchain_tools/agent_config.py", line 80, in _fetch_db_examples
+    cursor.execute(query) # Query already includes LIMIT
+    ~~~~~~~~~~~~~~^^^^^^^
+sqlite3.OperationalError: no such table: report_counterparties
+2025-04-29 07:53:58,117 - langchain_tools.agent_config - INFO - --- Closing DB connection for: /Users/saadahmed/Desktop/Apps/BussGPT/ccr_reporting.db ---
+2025-04-29 07:53:58,117 - langchain_tools.agent_config - INFO - --- Finished fetching DB examples for: ccr_reporting.db ---
+2025-04-29 07:53:58,117 - langchain_tools.agent_config - INFO - --- Finished fetching all DB examples. ---
+2025-04-29 07:53:58,117 - langchain_tools.agent - DEBUG - Loaded Tool: financial_sql_query_tool with description: Queries the `financial_data.db` database containing structured financial market data. Use this for specific questions about **historical (2016-2020) daily stock prices** (OHLC), **historical quarterly financials** (income/balance sheet, limited dates), **dividends**, or **stock splits** for known public companies like **'AAPL', 'MSFT', 'GOOG'**, etc. Input is a natural language question about specific historical data points. Persona: SQL Database Expert (Historical Financial Data).
+2025-04-29 07:53:58,117 - langchain_tools.agent - DEBUG - Loaded Tool: ccr_sql_query_tool with description: Queries the `ccr_reporting.db` database containing structured Counterparty Credit Risk (CCR) reporting data (sample data). Use this for specific questions about **counterparty details (ratings, country)**, **daily risk exposures** (Net MTM, Gross, PFE, Settlement), **risk limits**, **limit utilization**, **breach status**, or individual **trade details** related to counterparties like **'JPMorgan', 'BankOfAmerica', 'Citigroup'**, etc. Input is a natural language question about specific CCR metrics or counterparty/trade details within this database. Persona: SQL Database Expert (CCR Reporting Data).
+2025-04-29 07:53:58,117 - langchain_tools.agent - DEBUG - Loaded Tool: transcript_search_summary_tool with description: Answers questions requiring qualitative analysis, summaries, or context from **earnings call transcripts**. Use for queries about company performance narratives, strategies, management commentary, outlook, or specific events discussed in calls (e.g., queries like **'What was management's outlook for cloud growth in the MSFT Q4 2020 call?'**). Input should be the original user query. Persona: Equity Research Analyst (Transcript Specialist).
+2025-04-29 07:53:58,117 - langchain_tools.agent - DEBUG - Loaded Tool: financial_news_search with description: Searches the web for **current or recent** financial news, market sentiment, **live stock price estimates**, or general information about companies, markets, or economic events. To focus results on reliable financial sources, preferentially construct the search term using the 'site:' operator. For example: 'query site:reuters.com OR site:marketwatch.com OR site:finance.yahoo.com OR site:seekingalpha.com'. Use this for information **not** found in the historical financial database or the CCR reporting database.
+2025-04-29 07:53:58,117 - langchain_tools.agent - INFO - Master Agent tools initialized successfully
+2025-04-29 07:53:58,117 - langchain_tools.agent - INFO - Master Agent initialized with tools: ['financial_sql_query_tool', 'ccr_sql_query_tool', 'transcript_agent', 'financial_news_search']
+2025-04-29 07:53:58,117 - langchain_tools.orchestrator - INFO - Orchestrator initialized with tools: ['financial_sql_query_tool', 'ccr_sql_query_tool', 'transcript_search_summary_tool', 'financial_news_search']
+2025-04-29 07:53:58,117 - langchain_tools.agent - INFO - Orchestrator initialized
+2025-04-29 07:53:58,117 - langchain_tools.agent - DEBUG - Initializing Master Agent executor
+2025-04-29 07:53:58,118 - langchain_tools.agent - INFO - Master Agent executor initialized successfully
+2025-04-29 07:53:58,118 - __main__ - INFO - 
+Running through agent: Which counterparties exceeded their Gross Exposure limit between December 1 and December 5, 2022?
+2025-04-29 07:53:58,118 - langchain_tools.state_manager - INFO - Agent state reset.
+2025-04-29 07:53:58,118 - langchain_tools.logger - INFO - {"timestamp": "2025-04-29T11:53:58.118353", "level": "INFO", "event_type": "query_start", "agent_id": "HierarchicalAgent_v3_Refactored", "conversation_id": "6641d293-aab1-49e9-b621-3eb320d5471e", "query": "Which counterparties exceeded their Gross Exposure limit between December 1 and December 5, 2022?"}
+2025-04-29 07:53:58,761 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-04-29 07:54:01,099 - langchain_tools.tool_factory - INFO - [CCR Tool] Processing query: Which counterparties exceeded their Gross Exposure limit between December 1 and December 5, 2022?
+...
+2025-04-29 07:54:01,112 - langchain_tools.tool_factory - INFO - [CCR Tool] Generating SQL query...
+2025-04-29 07:54:03,349 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-04-29 07:54:03,355 - langchain_tools.tool_factory - INFO - [CCR Tool] Generated SQL: SELECT DISTINCT rc.customer_name, rc.total_exposure_usd, l.limit_amount_usd
+FROM report_counterparties rc
+JOIN report_daily_exposures rde ON rc.customer_id = rde.counterparty_id
+JOIN limits l ON rde.p...
+2025-04-29 07:54:03,355 - langchain_tools.tool_factory - INFO - [CCR Tool] Executing generated SQL query...
+2025-04-29 07:54:03,356 - langchain_tools.tool_factory - INFO - [CCR Tool] SQL execution successful. Result: ...
+2025-04-29 07:54:03,356 - langchain_tools.tool_factory - INFO - [CCR Tool] Query processing time: 2.26s
+2025-04-29 07:54:03,938 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-04-29 07:54:06,662 - langchain_tools.agent - INFO - AgentExecutor finished. Outcome: {'input': 'Which counterparties exceeded their Gross Exposure limit between December 1 and December 5, 2022?', 'output': 'Based on the analysis performed by the specialized ccr_sql_query_tool (SQL Database Expert for CCR Reporting Data), here is the response to your query: According to the CCR reporting database, no counterparties exceeded their Gross Exposure limit between December 1 and December 5, 2022. The query was executed successfully, but no results were returned, indicating that all counterparties remained within their established Gross Exposure limits during this period.'}
+2025-04-29 07:54:06,662 - langchain_tools.logger - INFO - {"timestamp": "2025-04-29T11:54:06.662391", "level": "INFO", "event_type": "query_end", "agent_id": "HierarchicalAgent_v3_Refactored", "conversation_id": "6641d293-aab1-49e9-b621-3eb320d5471e", "final_response": {"status": "success", "result": "Based on the analysis performed by the specialized ccr_sql_query_tool (SQL Database Expert for CCR Reporting Data), here is the response to your query: According to the CCR reporting database, no counterparties exceeded their Gross Exposure limit between December 1 and December 5, 2022. The query was executed successfully, but no results were returned, indicating that all counterparties remained within their established Gross Exposure limits during this period.", "error": null, "evidence": [], "confidence": 0.0, "tool_sequence": [], "category_identified": null}, "final_state": {"pending_doc_ids": [], "processed_doc_ids": [], "current_confidence": 0.0, "evidence_collected": [], "tool_sequence": [], "category_id": null, "last_query": "Which counterparties exceeded their Gross Exposure limit between December 1 and December 5, 2022?", "last_error": null}}
+2025-04-29 07:54:06,662 - __main__ - INFO - Agent execution completed.
+2025-04-29 07:54:06,663 - __main__ - INFO - Saved agent response to: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/agent_tests/../../test_results/run_20250429_075358_04bb95a2/response.txt

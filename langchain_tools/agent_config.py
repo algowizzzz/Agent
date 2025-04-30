@@ -77,13 +77,19 @@ def _fetch_db_examples(db_rel_path: str, query: str, limit: int = 3) -> List[str
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         logger.info(f"--- Executing query: {query} on {db_rel_path} ---")
-        cursor.execute(query) # Query already includes LIMIT
-        results = cursor.fetchall()
-        examples = [str(row[0]) for row in results] # Get first column as string
-        logger.info(f"--- Successfully fetched {len(examples)} examples from {db_rel_path} ---")
+        try:
+            cursor.execute(query) # Query already includes LIMIT
+            results = cursor.fetchall()
+            examples = [str(row[0]) for row in results] # Get first column as string
+            logger.info(f"--- Successfully fetched {len(examples)} examples from {db_rel_path} ---")
+        except sqlite3.Error as e:
+            # Log a warning instead of an error/exception if the query fails (e.g., table not found)
+            logger.warning(f"--- SQLITE WARNING fetching examples from {db_rel_path}: {e}. Proceeding without these examples. ---")
+            examples = [] # Ensure examples is empty list on error
     except sqlite3.Error as e:
-        logger.exception(f"--- SQLITE ERROR fetching examples from {db_rel_path}: {e} ---")
-        # Optionally return empty list or re-raise
+        # Keep logging connection errors etc. as errors
+        logger.error(f"--- SQLITE ERROR connecting to or setting up cursor for {db_rel_path}: {e} ---")
+        examples = [] # Ensure examples is empty list on error
     finally:
         if conn:
             logger.info(f"--- Closing DB connection for: {db_path} ---")
@@ -134,38 +140,57 @@ def get_tool_descriptions() -> Dict[str, str]:
     logger.info("--- Starting dynamic tool description generation... ---")
     fin_examples = _fetch_db_examples(
         FINANCIAL_DB_RELATIVE_PATH,
-        "SELECT DISTINCT ticker FROM daily_stock_prices WHERE ticker IS NOT NULL ORDER BY ticker LIMIT 3"
+        # Using companies table as it's more likely to exist than daily_stock_prices
+        "SELECT DISTINCT ticker FROM companies WHERE ticker IS NOT NULL ORDER BY ticker LIMIT 3"
     )
     ccr_examples = _fetch_db_examples(
         CCR_DB_RELATIVE_PATH,
-        "SELECT DISTINCT short_name FROM report_counterparties WHERE short_name IS NOT NULL ORDER BY short_name LIMIT 3"
+        # Using limits table as report_counterparties might be missing
+        "SELECT DISTINCT limit_id FROM limits WHERE limit_id IS NOT NULL ORDER BY limit_id LIMIT 3"
     )
     logger.info("--- Finished fetching all DB examples. ---")
 
     # Format examples or use fallbacks
-    fin_examples_str = ', '.join(f"\'{ex}\'" for ex in fin_examples) if fin_examples else "\'AAPL\', \'MSFT\', \'GOOG\'"
-    ccr_examples_str = ', '.join(f"\'{ex}\'" for ex in ccr_examples) if ccr_examples else "\'JPMorgan\', \'BankOfAmerica\', \'Citigroup\'"
+    # Use fallback examples more reliably if fetching failed
+    fin_examples_str = f"including **{', '.join(f'{ex}' for ex in fin_examples)}**" if fin_examples else "'AAPL', 'MSFT', 'GOOG'"
+    ccr_examples_str = f"including **{', '.join(f'{ex}' for ex in ccr_examples)}**" if ccr_examples else "'JPMorgan', 'BankOfAmerica', 'Citigroup'"
 
     # Populate templates
     final_descriptions = {}
     for tool_name, template in BASE_TOOL_DESCRIPTIONS.items():
         try:
-            if tool_name == "ccr_sql_query_tool" and tool_name in BASE_TOOL_DESCRIPTIONS:
-                 final_descriptions[tool_name] = template.format(ccr_examples=ccr_examples_str)
-            elif tool_name == "financial_sql_query_tool" and tool_name in BASE_TOOL_DESCRIPTIONS:
-                 final_descriptions[tool_name] = template.format(financial_examples=fin_examples_str)
+            # Simplified formatting - use kwargs for clarity
+            format_kwargs = {}
+            if '{financial_examples}' in template:
+                format_kwargs['financial_examples'] = fin_examples_str
+            if '{ccr_examples}' in template:
+                format_kwargs['ccr_examples'] = ccr_examples_str
+
+            if format_kwargs:
+                 final_descriptions[tool_name] = template.format(**format_kwargs)
             else:
                  # For tools without dynamic examples
-                 final_descriptions[tool_name] = template
+                 final_descriptions[tool_name] = template # Use template directly
+
         except KeyError as e:
-             logger.warning(f"KeyError formatting description for {tool_name}: {e}. Using template directly.")
-             # If a template doesn't need formatting, use it directly
+             logger.warning(f"KeyError formatting description for {tool_name}: {e}. Using template directly (check placeholders).")
+             # Use template directly if formatting fails unexpectedly
              final_descriptions[tool_name] = template
 
-    # Make sure the CCR tool description is added even if template formatting had issues
-    if "ccr_sql_query_tool" not in final_descriptions and "ccr_sql_query_tool" in BASE_TOOL_DESCRIPTIONS:
-        logger.warning("Adding CCR tool description manually after potential formatting issue.")
-        final_descriptions["ccr_sql_query_tool"] = BASE_TOOL_DESCRIPTIONS["ccr_sql_query_tool"].format(ccr_examples="'JPMorgan', 'BankOfAmerica', 'Citigroup'") # Use fallback
+    # Ensure all base descriptions are included, even if formatting failed entirely
+    for tool_name in BASE_TOOL_DESCRIPTIONS:
+        if tool_name not in final_descriptions:
+             logger.warning(f"Adding description for {tool_name} manually after formatting failure.")
+             # Attempt basic fallback formatting
+             fallback_kwargs = {
+                 'financial_examples': "'AAPL', 'MSFT', 'GOOG'",
+                 'ccr_examples': "'JPMorgan', 'BankOfAmerica', 'Citigroup'"
+             }
+             try:
+                 final_descriptions[tool_name] = BASE_TOOL_DESCRIPTIONS[tool_name].format(**fallback_kwargs)
+             except KeyError: # If even fallback placeholders are wrong
+                 final_descriptions[tool_name] = BASE_TOOL_DESCRIPTIONS[tool_name].replace('{financial_examples}', fallback_kwargs['financial_examples']).replace('{ccr_examples}', fallback_kwargs['ccr_examples'])
+
 
     return final_descriptions
 

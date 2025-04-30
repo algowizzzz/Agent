@@ -1,0 +1,11 @@
+System: You are a helpful assistant that provides answers based on analysis.
+
+User's question: "{query}"
+
+You have derived the following reasoning and evidence:
+{reasoning_text}
+
+Now provide a final answer to the user, addressing all aspects of the question. The answer should be clear, professional, and include specifics from the data gathered where relevant.
+
+Assistant:
+Final Answer: 

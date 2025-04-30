@@ -1,0 +1,79 @@
+2025-04-29 07:51:28,709 - __main__ - INFO - Logging detailed output to: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/agent_tests/../../test_results/run_20250429_075128_aeb3e4e5/log.txt
+2025-04-29 07:51:28,709 - __main__ - INFO - Starting agent test run for query: 'Which stock, AAPL or MSFT, had a higher percentage increase in closing price between the start of 2018 and the end of 2019?'
+2025-04-29 07:51:28,709 - __main__ - INFO - --- Attempting to get API key from environment... ---
+2025-04-29 07:51:28,709 - __main__ - INFO - --- ANTHROPIC_API_KEY loaded successfully. ---
+2025-04-29 07:51:28,709 - langchain_tools.logger - INFO - Initialized AgentLogger for agent HierarchicalAgent_v3_Refactored, conversation af4d2bea-27ed-4345-a6a7-301e3c3ce83f
+2025-04-29 07:51:28,709 - langchain_tools.agent - DEBUG - Initializing LLM
+2025-04-29 07:51:28,709 - langchain_tools.agent - DEBUG - Initializing LLM
+2025-04-29 07:51:28,709 - langchain_tools.tool_factory - INFO - Initializing ChatAnthropic with model: claude-3-5-sonnet-20240620
+2025-04-29 07:51:28,710 - langchain_tools.agent - DEBUG - ChatAnthropic instance created successfully via factory
+2025-04-29 07:51:28,710 - langchain_tools.agent - INFO - LLM initialized successfully
+2025-04-29 07:51:28,710 - langchain_tools.agent - DEBUG - Initializing tools for Master Agent
+2025-04-29 07:51:28,710 - langchain_tools.tool_factory - INFO - [Financial Tool] Connecting to SQL Database: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/financial_data.db
+2025-04-29 07:51:28,730 - langchain_tools.tool_factory - INFO - [Financial Tool] SQLDatabase connection successful. Tables: ['companies', 'daily_stock_prices', 'dividends', 'quarterly_balance_sheet', 'quarterly_income_statement', 'stock_splits']
+2025-04-29 07:51:28,734 - langchain_tools.tool_factory - INFO - [Financial Tool] Generated DB Metadata Hints for LLM.
+2025-04-29 07:51:28,734 - langchain_tools.tool_factory - INFO - [CCR Tool] Connecting to SQL Database: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/ccr_reporting.db
+2025-04-29 07:51:28,740 - langchain_tools.tool_factory - WARNING - [CCR Tool] Error getting metadata hints: no such column: product_type
+2025-04-29 07:51:28,740 - langchain_tools.tool_factory - INFO - [CCR Tool] SQLDatabase connection successful. Tables: ['limits', 'products', 'report_counterparties', 'report_daily_exposures', 'securities', 'transit_mapping']
+2025-04-29 07:51:28,740 - langchain_tools.tool_factory - INFO - [Transcript Agent Tool] Initializing...
+2025-04-29 07:51:28,740 - langchain_tools.tool4_metadata_lookup - INFO - Metadata Tool Factory: Creating tool instance.
+2025-04-29 07:51:28,740 - langchain_tools.tool4_metadata_lookup - INFO - Metadata Tool Factory: LLM initialized successfully.
+2025-04-29 07:51:28,740 - langchain_tools.tool_factory - INFO - [Transcript Agent Tool] Internal tools created: ['category_tool', 'metadata_lookup_tool', 'document_content_analysis_tool']
+2025-04-29 07:51:28,742 - langchain_tools.agent_config - INFO - --- Starting dynamic tool description generation... ---
+2025-04-29 07:51:28,742 - langchain_tools.agent_config - INFO - --- Attempting to fetch DB examples for: financial_data.db ---
+2025-04-29 07:51:28,742 - langchain_tools.agent_config - DEBUG - Tried DB path (not found): /Users/saadahmed/Desktop/Apps/BussGPT/financial_data.db
+2025-04-29 07:51:28,742 - langchain_tools.agent_config - INFO - Using DB path: /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db
+2025-04-29 07:51:28,742 - langchain_tools.agent_config - INFO - --- Connecting to DB at: /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db ---
+2025-04-29 07:51:28,742 - langchain_tools.agent_config - INFO - --- Executing query: SELECT DISTINCT ticker FROM daily_stock_prices WHERE ticker IS NOT NULL ORDER BY ticker LIMIT 3 on financial_data.db ---
+2025-04-29 07:51:28,742 - langchain_tools.agent_config - ERROR - --- SQLITE ERROR fetching examples from financial_data.db: no such table: daily_stock_prices ---
+Traceback (most recent call last):
+  File "/Users/saadahmed/Desktop/Apps/BussGPT/langchain_tools/agent_config.py", line 80, in _fetch_db_examples
+    cursor.execute(query) # Query already includes LIMIT
+    ~~~~~~~~~~~~~~^^^^^^^
+sqlite3.OperationalError: no such table: daily_stock_prices
+2025-04-29 07:51:28,743 - langchain_tools.agent_config - INFO - --- Closing DB connection for: /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db ---
+2025-04-29 07:51:28,743 - langchain_tools.agent_config - INFO - --- Finished fetching DB examples for: financial_data.db ---
+2025-04-29 07:51:28,743 - langchain_tools.agent_config - INFO - --- Attempting to fetch DB examples for: ccr_reporting.db ---
+2025-04-29 07:51:28,743 - langchain_tools.agent_config - INFO - Using DB path: /Users/saadahmed/Desktop/Apps/BussGPT/ccr_reporting.db
+2025-04-29 07:51:28,743 - langchain_tools.agent_config - INFO - --- Connecting to DB at: /Users/saadahmed/Desktop/Apps/BussGPT/ccr_reporting.db ---
+2025-04-29 07:51:28,743 - langchain_tools.agent_config - INFO - --- Executing query: SELECT DISTINCT short_name FROM report_counterparties WHERE short_name IS NOT NULL ORDER BY short_name LIMIT 3 on ccr_reporting.db ---
+2025-04-29 07:51:28,743 - langchain_tools.agent_config - ERROR - --- SQLITE ERROR fetching examples from ccr_reporting.db: no such table: report_counterparties ---
+Traceback (most recent call last):
+  File "/Users/saadahmed/Desktop/Apps/BussGPT/langchain_tools/agent_config.py", line 80, in _fetch_db_examples
+    cursor.execute(query) # Query already includes LIMIT
+    ~~~~~~~~~~~~~~^^^^^^^
+sqlite3.OperationalError: no such table: report_counterparties
+2025-04-29 07:51:28,744 - langchain_tools.agent_config - INFO - --- Closing DB connection for: /Users/saadahmed/Desktop/Apps/BussGPT/ccr_reporting.db ---
+2025-04-29 07:51:28,744 - langchain_tools.agent_config - INFO - --- Finished fetching DB examples for: ccr_reporting.db ---
+2025-04-29 07:51:28,744 - langchain_tools.agent_config - INFO - --- Finished fetching all DB examples. ---
+2025-04-29 07:51:28,744 - langchain_tools.agent - DEBUG - Loaded Tool: financial_sql_query_tool with description: Queries the `financial_data.db` database containing structured financial market data. Use this for specific questions about **historical (2016-2020) daily stock prices** (OHLC), **historical quarterly financials** (income/balance sheet, limited dates), **dividends**, or **stock splits** for known public companies like **'AAPL', 'MSFT', 'GOOG'**, etc. Input is a natural language question about specific historical data points. Persona: SQL Database Expert (Historical Financial Data).
+2025-04-29 07:51:28,744 - langchain_tools.agent - DEBUG - Loaded Tool: ccr_sql_query_tool with description: Queries the `ccr_reporting.db` database containing structured Counterparty Credit Risk (CCR) reporting data (sample data). Use this for specific questions about **counterparty details (ratings, country)**, **daily risk exposures** (Net MTM, Gross, PFE, Settlement), **risk limits**, **limit utilization**, **breach status**, or individual **trade details** related to counterparties like **'JPMorgan', 'BankOfAmerica', 'Citigroup'**, etc. Input is a natural language question about specific CCR metrics or counterparty/trade details within this database. Persona: SQL Database Expert (CCR Reporting Data).
+2025-04-29 07:51:28,744 - langchain_tools.agent - DEBUG - Loaded Tool: transcript_search_summary_tool with description: Answers questions requiring qualitative analysis, summaries, or context from **earnings call transcripts**. Use for queries about company performance narratives, strategies, management commentary, outlook, or specific events discussed in calls (e.g., queries like **'What was management's outlook for cloud growth in the MSFT Q4 2020 call?'**). Input should be the original user query. Persona: Equity Research Analyst (Transcript Specialist).
+2025-04-29 07:51:28,744 - langchain_tools.agent - DEBUG - Loaded Tool: financial_news_search with description: Searches the web for **current or recent** financial news, market sentiment, **live stock price estimates**, or general information about companies, markets, or economic events. To focus results on reliable financial sources, preferentially construct the search term using the 'site:' operator. For example: 'query site:reuters.com OR site:marketwatch.com OR site:finance.yahoo.com OR site:seekingalpha.com'. Use this for information **not** found in the historical financial database or the CCR reporting database.
+2025-04-29 07:51:28,744 - langchain_tools.agent - INFO - Master Agent tools initialized successfully
+2025-04-29 07:51:28,744 - langchain_tools.agent - INFO - Master Agent initialized with tools: ['financial_sql_query_tool', 'ccr_sql_query_tool', 'transcript_agent', 'financial_news_search']
+2025-04-29 07:51:28,744 - langchain_tools.orchestrator - INFO - Orchestrator initialized with tools: ['financial_sql_query_tool', 'ccr_sql_query_tool', 'transcript_search_summary_tool', 'financial_news_search']
+2025-04-29 07:51:28,744 - langchain_tools.agent - INFO - Orchestrator initialized
+2025-04-29 07:51:28,744 - langchain_tools.agent - DEBUG - Initializing Master Agent executor
+2025-04-29 07:51:28,744 - langchain_tools.agent - INFO - Master Agent executor initialized successfully
+2025-04-29 07:51:28,745 - __main__ - INFO - 
+Running through agent: Which stock, AAPL or MSFT, had a higher percentage increase in closing price between the start of 2018 and the end of 2019?
+2025-04-29 07:51:28,745 - langchain_tools.state_manager - INFO - Agent state reset.
+2025-04-29 07:51:28,745 - langchain_tools.logger - INFO - {"timestamp": "2025-04-29T11:51:28.745144", "level": "INFO", "event_type": "query_start", "agent_id": "HierarchicalAgent_v3_Refactored", "conversation_id": "69e0046c-83bc-4154-847a-fba9d0a262f6", "query": "Which stock, AAPL or MSFT, had a higher percentage increase in closing price between the start of 2018 and the end of 2019?"}
+2025-04-29 07:51:29,521 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-04-29 07:51:32,946 - langchain_tools.tool_factory - INFO - [Financial Tool] Processing query: Which stock, AAPL or MSFT, had a higher percentage increase in closing price between the start of 20...
+2025-04-29 07:51:32,963 - langchain_tools.tool_factory - INFO - [Financial Tool] Generating SQL query...
+2025-04-29 07:51:35,642 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-04-29 07:51:35,654 - langchain_tools.tool_factory - INFO - [Financial Tool] Generated SQL: SELECT ticker,
+       (end_price / start_price - 1) * 100 AS percent_increase
+FROM (
+    SELECT ticker,
+           (SELECT close FROM daily_stock_prices WHERE ticker = d.ticker AND date = '2018-01-02'...
+2025-04-29 07:51:35,654 - langchain_tools.tool_factory - INFO - [Financial Tool] Executing generated SQL query...
+2025-04-29 07:51:35,656 - langchain_tools.tool_factory - INFO - [Financial Tool] SQL execution successful. Result: [('MSFT', 89.4149048713064)]...
+2025-04-29 07:51:35,656 - langchain_tools.tool_factory - INFO - [Financial Tool] Query processing time: 2.71s
+2025-04-29 07:51:36,231 - httpx - INFO - HTTP Request: POST https://api.anthropic.com/v1/messages "HTTP/1.1 200 OK"
+2025-04-29 07:51:39,128 - langchain_tools.agent - INFO - AgentExecutor finished. Outcome: {'input': 'Which stock, AAPL or MSFT, had a higher percentage increase in closing price between the start of 2018 and the end of 2019?', 'output': "Based on the analysis performed by the specialized financial_sql_query_tool (SQL Database Expert for Historical Financial Data), here is the response to your query: \n\nThe stock that had a higher percentage increase in closing price between the start of 2018 and the end of 2019 was MSFT (Microsoft). According to the data, MSFT's stock price increased by approximately 89.41% during this period. This result is based on comparing the closing prices of both AAPL (Apple) and MSFT at the beginning of 2018 (January 2, 2018) and the end of 2019 (December 31, 2019), with MSFT showing the higher percentage increase."}
+2025-04-29 07:51:39,128 - langchain_tools.logger - INFO - {"timestamp": "2025-04-29T11:51:39.128716", "level": "INFO", "event_type": "query_end", "agent_id": "HierarchicalAgent_v3_Refactored", "conversation_id": "69e0046c-83bc-4154-847a-fba9d0a262f6", "final_response": {"status": "success", "result": "Based on the analysis performed by the specialized financial_sql_query_tool (SQL Database Expert for Historical Financial Data), here is the response to your query: \n\nThe stock that had a higher percentage increase in closing price between the start of 2018 and the end of 2019 was MSFT (Microsoft). According to the data, MSFT's stock price increased by approximately 89.41% during this period. This result is based on comparing the closing prices of both AAPL (Apple) and MSFT at the beginning of 2018 (January 2, 2018) and the end of 2019 (December 31, 2019), with MSFT showing the higher percentage increase.", "error": null, "evidence": [], "confidence": 0.0, "tool_sequence": [], "category_identified": null}, "final_state": {"pending_doc_ids": [], "processed_doc_ids": [], "current_confidence": 0.0, "evidence_collected": [], "tool_sequence": [], "category_id": null, "last_query": "Which stock, AAPL or MSFT, had a higher percentage increase in closing price between the start of 2018 and the end of 2019?", "last_error": null}}
+2025-04-29 07:51:39,129 - __main__ - INFO - Agent execution completed.
+2025-04-29 07:51:39,130 - __main__ - INFO - Saved agent response to: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/agent_tests/../../test_results/run_20250429_075128_aeb3e4e5/response.txt

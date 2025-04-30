@@ -1,0 +1,9 @@
+{
+  "status": "success",
+  "result": "Based on the analysis performed by the specialized ccr_sql_query_tool (SQL Database Expert for CCR Reporting Data), here is the response to your query: \n\nThe top 3 counterparties by Net MTM exposure on the most recent date are:\n\n1. Bank of America Corp. with a Net MTM exposure of $44,100,000\n2. JPMorgan Chase & Co. with a Net MTM exposure of $23,800,000\n3. Citigroup Inc. with a Net MTM exposure of $20,000,000\n\nThese figures represent the sum of Mark-to-Market (MTM) exposures in USD for each counterparty on the most recent reporting date in the CCR database.",
+  "error": null,
+  "evidence": [],
+  "confidence": 0.0,
+  "tool_sequence": [],
+  "category_identified": null
+}
