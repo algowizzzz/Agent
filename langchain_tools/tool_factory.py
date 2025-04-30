@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 def create_llm(
     api_key: Optional[str] = None,
-    model: str = "claude-3-5-sonnet-20240620",
+    model: str = "claude-3-haiku-20240307",
     temperature: float = 0,
 ) -> ChatAnthropic:
     """
@@ -987,26 +987,40 @@ Thought:{agent_scratchpad}
                 handle_parsing_errors="Check your output and make sure it conforms to the expected format!",
             )
 
-            # Return the Tool with a lambda that invokes the agent_executor
+            # --- Define helper function for execution ---
+            def _run_transcript_sub_agent(query: str, executor: AgentExecutor) -> Dict[str, Any] | str:
+                try:
+                    # Execute the sub-agent
+                    result = executor.invoke({"input": query})
+                    # Return the output if successful
+                    return result.get("output", "Transcript agent finished but provided no output.")
+                except Exception as sub_agent_error:
+                    # Log the error from the sub-agent
+                    logger.error(f"[Transcript Agent Tool] Error during sub-agent execution: {sub_agent_error}", exc_info=True)
+                    # Return a structured error dictionary consistent with SQL tools
+                    return {"error": f"Transcript analysis failed: {type(sub_agent_error).__name__} - {sub_agent_error}"}
+            # ------------------------------------------
+
+            # Return the Tool, using the helper function for its func
             return Tool(
                 name="transcript_agent",
-                func=lambda q: agent_executor.invoke({"input": q}).get(
-                    "output", "No response from transcript agent"
-                ),
+                func=lambda q: _run_transcript_sub_agent(q, agent_executor),
                 description="A specialized agent for analyzing company earnings calls and related documents.",
             )
         except Exception as e:
             logger.error(f"Error creating transcript agent: {e}")
+            # Return a dummy error tool if agent *creation* fails
             return Tool(
                 name="transcript_agent_error",
-                func=lambda q: {"error": f"Error creating transcript agent: {e}"},
+                func=lambda q: {"error": f"Error during transcript agent creation: {e}"},
                 description="Error creating transcript agent.",
             )
 
     except Exception as e:
-        logger.error(f"Error creating transcript agent: {e}")
+        logger.error(f"Outer Error creating transcript agent tool: {e}", exc_info=True)
+        # Return a dummy error tool if outer creation fails
         return Tool(
             name="transcript_agent_error",
-            func=lambda q: {"error": f"Error creating transcript agent: {e}"},
-            description="Error creating transcript agent.",
+            func=lambda q: {"error": f"Error creating transcript agent structure: {e}"},
+            description="Error creating transcript agent structure.",
         )
