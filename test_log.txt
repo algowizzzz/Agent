@@ -1,0 +1,163 @@
+2025-04-30 22:51:37,547 - __main__ - INFO - Loading environment variables...
+2025-04-30 22:51:37,547 - __main__ - INFO - Environment variables loaded.
+2025-04-30 22:51:38,538 - __main__ - INFO - Initializing Flask app and SocketIO...
+2025-04-30 22:51:38,542 - __main__ - INFO - Flask app and SocketIO initialized.
+2025-04-30 22:51:38,542 - __main__ - INFO - Initializing HierarchicalRetrievalAgent...
+2025-04-30 22:51:38,542 - langchain_tools.logger - INFO - Initialized AgentLogger for agent HierarchicalAgent_v3_Refactored, conversation 653abcb7-c418-4e16-898e-cbca003cb414
+2025-04-30 22:51:38,543 - langchain_tools.agent - DEBUG - Initializing LLM
+2025-04-30 22:51:38,543 - langchain_tools.agent - DEBUG - Initializing LLM
+2025-04-30 22:51:38,543 - langchain_tools.tool_factory - INFO - Initializing ChatAnthropic with model: claude-3-5-sonnet-20240620
+2025-04-30 22:51:38,544 - langchain_tools.agent - DEBUG - ChatAnthropic instance created successfully via factory
+2025-04-30 22:51:38,544 - langchain_tools.agent - INFO - LLM initialized successfully
+2025-04-30 22:51:38,544 - langchain_tools.agent - DEBUG - Initializing tools for Master Agent
+2025-04-30 22:51:38,544 - langchain_tools.tool_factory - INFO - [Financial Tool] Connecting to SQL Database: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/financial_data.db
+2025-04-30 22:51:38,564 - langchain_tools.tool_factory - INFO - [Financial Tool] SQLDatabase connection successful. Tables: ['companies', 'daily_stock_prices', 'dividends', 'quarterly_balance_sheet', 'quarterly_income_statement', 'stock_splits']
+2025-04-30 22:51:38,569 - langchain_tools.tool_factory - INFO - [Financial Tool] Generated DB Metadata Hints for LLM.
+2025-04-30 22:51:38,570 - langchain_tools.tool_factory - INFO - [CCR Tool] Connecting to SQL Database: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/ccr_reporting.db
+2025-04-30 22:51:38,576 - langchain_tools.tool_factory - WARNING - [CCR Tool] Error getting metadata hints: no such column: product_type
+2025-04-30 22:51:38,576 - langchain_tools.tool_factory - INFO - [CCR Tool] SQLDatabase connection successful. Tables: ['limits', 'products', 'report_counterparties', 'report_daily_exposures', 'securities', 'transit_mapping']
+2025-04-30 22:51:38,576 - langchain_tools.tool_factory - INFO - [Transcript Agent Tool] Initializing...
+2025-04-30 22:51:38,576 - langchain_tools.tool4_metadata_lookup - INFO - Metadata Tool Factory: Creating tool instance.
+2025-04-30 22:51:38,576 - langchain_tools.tool4_metadata_lookup - INFO - Metadata Tool Factory: LLM initialized successfully.
+2025-04-30 22:51:38,576 - langchain_tools.tool_factory - INFO - [Transcript Agent Tool] Internal tools created: ['category_tool', 'metadata_lookup_tool', 'document_content_analysis_tool']
+2025-04-30 22:51:38,578 - langchain_tools.agent_config - INFO - --- Starting dynamic tool description generation... ---
+2025-04-30 22:51:38,578 - langchain_tools.agent_config - INFO - --- Attempting to fetch DB examples for: financial_data.db ---
+2025-04-30 22:51:38,578 - langchain_tools.agent_config - DEBUG - Tried DB path (not found): /Users/saadahmed/Desktop/Apps/BussGPT/financial_data.db
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - INFO - Using DB path: /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - INFO - --- Connecting to DB at: /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db ---
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - INFO - --- Executing query: SELECT DISTINCT ticker FROM companies WHERE ticker IS NOT NULL ORDER BY ticker LIMIT 3 on financial_data.db ---
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - WARNING - --- SQLITE WARNING fetching examples from financial_data.db: no such table: companies. Proceeding without these examples. ---
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - INFO - --- Closing DB connection for: /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db ---
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - INFO - --- Finished fetching DB examples for: financial_data.db ---
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - INFO - --- Attempting to fetch DB examples for: ccr_reporting.db ---
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - INFO - Using DB path: /Users/saadahmed/Desktop/Apps/BussGPT/ccr_reporting.db
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - INFO - --- Connecting to DB at: /Users/saadahmed/Desktop/Apps/BussGPT/ccr_reporting.db ---
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - INFO - --- Executing query: SELECT DISTINCT limit_id FROM limits WHERE limit_id IS NOT NULL ORDER BY limit_id LIMIT 3 on ccr_reporting.db ---
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - WARNING - --- SQLITE WARNING fetching examples from ccr_reporting.db: no such table: limits. Proceeding without these examples. ---
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - INFO - --- Closing DB connection for: /Users/saadahmed/Desktop/Apps/BussGPT/ccr_reporting.db ---
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - INFO - --- Finished fetching DB examples for: ccr_reporting.db ---
+2025-04-30 22:51:38,579 - langchain_tools.agent_config - INFO - --- Finished fetching all DB examples. ---
+2025-04-30 22:51:38,579 - langchain_tools.agent - DEBUG - Loaded Tool: financial_sql_query_tool with description: Queries the `financial_data.db` database containing structured financial market data. Use this for specific questions about **historical (2016-2020) daily stock prices** (OHLC), **historical quarterly financials** (income/balance sheet, limited dates), **dividends**, or **stock splits** for known public companies like **'AAPL', 'MSFT', 'GOOG'**, etc. Input is a natural language question about specific historical data points. Persona: SQL Database Expert (Historical Financial Data).
+2025-04-30 22:51:38,579 - langchain_tools.agent - DEBUG - Loaded Tool: ccr_sql_query_tool with description: Queries the `ccr_reporting.db` database containing structured Counterparty Credit Risk (CCR) reporting data (sample data). Use this for specific questions about **counterparty details (ratings, country)**, **daily risk exposures** (Net MTM, Gross, PFE, Settlement), **risk limits**, **limit utilization**, **breach status**, or individual **trade details** related to counterparties like **'JPMorgan', 'BankOfAmerica', 'Citigroup'**, etc. Input is a natural language question about specific CCR metrics or counterparty/trade details within this database. Persona: SQL Database Expert (CCR Reporting Data).
+2025-04-30 22:51:38,579 - langchain_tools.agent - DEBUG - Loaded Tool: transcript_search_summary_tool with description: Answers questions requiring qualitative analysis, summaries, or context from **earnings call transcripts**. Use for queries about company performance narratives, strategies, management commentary, outlook, or specific events discussed in calls (e.g., queries like **'What was management's outlook for cloud growth in the MSFT Q4 2020 call?'**). Input should be the original user query. Persona: Equity Research Analyst (Transcript Specialist).
+2025-04-30 22:51:38,579 - langchain_tools.agent - DEBUG - Loaded Tool: financial_news_search with description: Searches the web for **current or recent** financial news, market sentiment, **live stock price estimates**, or general information about companies, markets, or economic events. To focus results on reliable financial sources, preferentially construct the search term using the 'site:' operator. For example: 'query site:reuters.com OR site:marketwatch.com OR site:finance.yahoo.com OR site:seekingalpha.com'. Use this for information **not** found in the historical financial database or the CCR reporting database.
+2025-04-30 22:51:38,580 - langchain_tools.agent - INFO - Master Agent tools initialized successfully
+2025-04-30 22:51:38,580 - langchain_tools.agent - INFO - Master Agent initialized with tools: ['financial_sql_query_tool', 'ccr_sql_query_tool', 'transcript_agent', 'financial_news_search']
+2025-04-30 22:51:38,580 - langchain_tools.orchestrator - INFO - Orchestrator initialized with tools: ['financial_sql_query_tool', 'ccr_sql_query_tool', 'transcript_search_summary_tool', 'financial_news_search']
+2025-04-30 22:51:38,580 - langchain_tools.agent - INFO - Orchestrator initialized
+2025-04-30 22:51:38,580 - langchain_tools.agent - DEBUG - Initializing Master Agent executor
+2025-04-30 22:51:38,580 - langchain_tools.agent - INFO - Master Agent executor initialized successfully
+2025-04-30 22:51:38,580 - __main__ - INFO - HierarchicalRetrievalAgent initialized successfully.
+2025-04-30 22:51:38,581 - __main__ - INFO - Loading environment variables...
+2025-04-30 22:51:38,581 - __main__ - INFO - Environment variables loaded.
+2025-04-30 22:51:38,581 - __main__ - INFO - Initializing Flask app and SocketIO...
+2025-04-30 22:51:38,582 - __main__ - INFO - Flask app and SocketIO initialized.
+2025-04-30 22:51:38,582 - __main__ - INFO - Initializing HierarchicalRetrievalAgent...
+2025-04-30 22:51:38,582 - langchain_tools.logger - INFO - Initialized AgentLogger for agent HierarchicalAgent_v3_Refactored, conversation f1268a4e-7725-4b56-8753-426878cf5f68
+2025-04-30 22:51:38,582 - langchain_tools.tool_factory - INFO - Initializing ChatAnthropic with model: claude-3-5-sonnet-20240620
+2025-04-30 22:51:38,582 - langchain_tools.agent - INFO - LLM initialized successfully
+2025-04-30 22:51:38,582 - langchain_tools.tool_factory - INFO - [Financial Tool] Connecting to SQL Database: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/financial_data.db
+2025-04-30 22:51:38,588 - langchain_tools.tool_factory - INFO - [Financial Tool] SQLDatabase connection successful. Tables: ['companies', 'daily_stock_prices', 'dividends', 'quarterly_balance_sheet', 'quarterly_income_statement', 'stock_splits']
+2025-04-30 22:51:38,590 - langchain_tools.tool_factory - INFO - [Financial Tool] Generated DB Metadata Hints for LLM.
+2025-04-30 22:51:38,590 - langchain_tools.tool_factory - INFO - [CCR Tool] Connecting to SQL Database: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/ccr_reporting.db
+2025-04-30 22:51:38,596 - langchain_tools.tool_factory - WARNING - [CCR Tool] Error getting metadata hints: no such column: product_type
+2025-04-30 22:51:38,596 - langchain_tools.tool_factory - INFO - [CCR Tool] SQLDatabase connection successful. Tables: ['limits', 'products', 'report_counterparties', 'report_daily_exposures', 'securities', 'transit_mapping']
+2025-04-30 22:51:38,596 - langchain_tools.tool_factory - INFO - [Transcript Agent Tool] Initializing...
+2025-04-30 22:51:38,596 - langchain_tools.tool4_metadata_lookup - INFO - Metadata Tool Factory: Creating tool instance.
+2025-04-30 22:51:38,596 - langchain_tools.tool4_metadata_lookup - INFO - Metadata Tool Factory: LLM initialized successfully.
+2025-04-30 22:51:38,596 - langchain_tools.tool_factory - INFO - [Transcript Agent Tool] Internal tools created: ['category_tool', 'metadata_lookup_tool', 'document_content_analysis_tool']
+2025-04-30 22:51:38,596 - langchain_tools.agent_config - INFO - --- Starting dynamic tool description generation... ---
+2025-04-30 22:51:38,596 - langchain_tools.agent_config - INFO - --- Attempting to fetch DB examples for: financial_data.db ---
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - INFO - Using DB path: /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - INFO - --- Connecting to DB at: /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db ---
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - INFO - --- Executing query: SELECT DISTINCT ticker FROM companies WHERE ticker IS NOT NULL ORDER BY ticker LIMIT 3 on financial_data.db ---
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - WARNING - --- SQLITE WARNING fetching examples from financial_data.db: no such table: companies. Proceeding without these examples. ---
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - INFO - --- Closing DB connection for: /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db ---
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - INFO - --- Finished fetching DB examples for: financial_data.db ---
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - INFO - --- Attempting to fetch DB examples for: ccr_reporting.db ---
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - INFO - Using DB path: /Users/saadahmed/Desktop/Apps/BussGPT/ccr_reporting.db
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - INFO - --- Connecting to DB at: /Users/saadahmed/Desktop/Apps/BussGPT/ccr_reporting.db ---
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - INFO - --- Executing query: SELECT DISTINCT limit_id FROM limits WHERE limit_id IS NOT NULL ORDER BY limit_id LIMIT 3 on ccr_reporting.db ---
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - WARNING - --- SQLITE WARNING fetching examples from ccr_reporting.db: no such table: limits. Proceeding without these examples. ---
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - INFO - --- Closing DB connection for: /Users/saadahmed/Desktop/Apps/BussGPT/ccr_reporting.db ---
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - INFO - --- Finished fetching DB examples for: ccr_reporting.db ---
+2025-04-30 22:51:38,597 - langchain_tools.agent_config - INFO - --- Finished fetching all DB examples. ---
+2025-04-30 22:51:38,597 - langchain_tools.agent - INFO - Master Agent tools initialized successfully
+2025-04-30 22:51:38,597 - langchain_tools.agent - INFO - Master Agent initialized with tools: ['financial_sql_query_tool', 'ccr_sql_query_tool', 'transcript_agent', 'financial_news_search']
+2025-04-30 22:51:38,597 - langchain_tools.orchestrator - INFO - Orchestrator initialized with tools: ['financial_sql_query_tool', 'ccr_sql_query_tool', 'transcript_search_summary_tool', 'financial_news_search']
+2025-04-30 22:51:38,597 - langchain_tools.agent - INFO - Orchestrator initialized
+2025-04-30 22:51:38,598 - langchain_tools.agent - INFO - Master Agent executor initialized successfully
+2025-04-30 22:51:38,598 - __main__ - INFO - HierarchicalRetrievalAgent initialized successfully.
+2025-04-30 22:51:38,598 - __main__ - INFO - Starting backend server...
+2025-04-30 22:51:38,598 - __main__ - INFO - Attempting to start SocketIO server on 0.0.0.0:5001...
+(51899) wsgi starting up on http://0.0.0.0:5001
+(51899) accepted ('127.0.0.1', 51184)
+(51899) accepted ('127.0.0.1', 51213)
+127.0.0.1 - - [30/Apr/2025 22:51:52] "GET /socket.io/?transport=polling&EIO=4&t=1746067912.827582 HTTP/1.1" 200 300 0.000212
+(51899) accepted ('127.0.0.1', 51215)
+127.0.0.1 - - [30/Apr/2025 22:52:02] "GET /socket.io/?transport=websocket&EIO=4&sid=9GX_vIMuDZFaOYauAAAC&t=1746067912.835021 HTTP/1.1" 200 0 10.008191
+127.0.0.1 - - [30/Apr/2025 23:12:55] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 1275.376033
+(51899) accepted ('127.0.0.1', 54240)
+127.0.0.1 - - [30/Apr/2025 23:34:12] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 1274.507996
+(51899) accepted ('127.0.0.1', 57282)
+127.0.0.1 - - [01/May/2025 00:53:59] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 4785.846670
+(51899) accepted ('127.0.0.1', 52567)
+127.0.0.1 - - [01/May/2025 08:18:23] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 349.237137
+(51899) accepted ('127.0.0.1', 53470)
+127.0.0.1 - - [01/May/2025 08:39:17] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 1252.078964
+(51899) accepted ('127.0.0.1', 54056)
+127.0.0.1 - - [01/May/2025 10:36:52] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 7054.027632
+(51899) accepted ('127.0.0.1', 55992)
+127.0.0.1 - - [01/May/2025 10:38:38] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 104.708924
+(51899) accepted ('127.0.0.1', 56137)
+127.0.0.1 - - [01/May/2025 11:09:16] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 1836.071219
+(51899) accepted ('127.0.0.1', 57086)
+127.0.0.1 - - [01/May/2025 11:15:32] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 374.309946
+(51899) accepted ('127.0.0.1', 57612)
+127.0.0.1 - - [01/May/2025 11:21:19] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 345.745878
+(51899) accepted ('127.0.0.1', 58104)
+127.0.0.1 - - [01/May/2025 11:22:37] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 76.620068
+(51899) accepted ('127.0.0.1', 58289)
+127.0.0.1 - - [01/May/2025 11:31:31] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 532.923903
+(51899) accepted ('127.0.0.1', 58546)
+127.0.0.1 - - [01/May/2025 12:10:34] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 2341.245679
+(51899) accepted ('127.0.0.1', 59170)
+127.0.0.1 - - [01/May/2025 12:17:10] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 394.184280
+(51899) accepted ('127.0.0.1', 59536)
+127.0.0.1 - - [01/May/2025 12:20:58] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 227.606798
+(51899) accepted ('127.0.0.1', 59966)
+127.0.0.1 - - [01/May/2025 12:54:22] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 2001.997288
+(51899) accepted ('127.0.0.1', 60607)
+127.0.0.1 - - [01/May/2025 13:02:43] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 498.570749
+(51899) accepted ('127.0.0.1', 61809)
+127.0.0.1 - - [01/May/2025 13:03:07] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 22.297038
+(51899) accepted ('127.0.0.1', 61857)
+127.0.0.1 - - [01/May/2025 13:34:44] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 1896.087306
+(51899) accepted ('127.0.0.1', 63155)
+127.0.0.1 - - [01/May/2025 13:54:25] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 1179.791019
+(51899) accepted ('127.0.0.1', 63341)
+127.0.0.1 - - [01/May/2025 15:17:23] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 4976.138056
+(51899) accepted ('127.0.0.1', 65248)
+127.0.0.1 - - [01/May/2025 16:07:18] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 2993.061064
+(51899) accepted ('127.0.0.1', 53937)
+127.0.0.1 - - [01/May/2025 16:16:45] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 565.847196
+(51899) accepted ('127.0.0.1', 54426)
+127.0.0.1 - - [01/May/2025 16:19:00] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 133.432416
+(51899) accepted ('127.0.0.1', 54703)
+127.0.0.1 - - [01/May/2025 16:29:59] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 657.446804
+(51899) accepted ('127.0.0.1', 55464)
+127.0.0.1 - - [01/May/2025 16:45:48] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 946.454202
+(51899) accepted ('127.0.0.1', 55862)
+127.0.0.1 - - [01/May/2025 16:46:34] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 44.372861
+(51899) accepted ('127.0.0.1', 55894)
+127.0.0.1 - - [01/May/2025 17:22:03] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 2127.225826
+(51899) accepted ('127.0.0.1', 60396)
+127.0.0.1 - - [01/May/2025 17:37:16] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 911.669741
+(51899) accepted ('127.0.0.1', 61235)
+127.0.0.1 - - [01/May/2025 17:47:31] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 613.527637
+(51899) accepted ('127.0.0.1', 62474)
+127.0.0.1 - - [01/May/2025 18:00:50] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 797.929293
+(51899) accepted ('127.0.0.1', 63351)
+127.0.0.1 - - [01/May/2025 19:29:32] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 5319.038283
+(51899) accepted ('127.0.0.1', 55257)
+127.0.0.1 - - [01/May/2025 21:15:36] "GET /socket.io/?EIO=4&transport=websocket HTTP/1.1" 200 0 6363.682284

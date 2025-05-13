@@ -1,0 +1,18 @@
+[
+  {
+    "company": "Bank of Montreal",
+    "form_type": "10-K",
+    "year": "2023",
+    "description": "Annual Report for 2023 Fiscal Year",
+    "html_path": "/Users/saadahmed/Desktop/Apps/BussGPT/sec_filings/reports/BMO_10-K_2023.html",
+    "mda_path": "/Users/saadahmed/Desktop/Apps/BussGPT/sec_filings/reports/BMO_10-K_2023_MDA.txt"
+  },
+  {
+    "company": "Bank of Montreal",
+    "form_type": "10-Q",
+    "year": "2023",
+    "description": "Quarterly Report for Q3 2023",
+    "html_path": "/Users/saadahmed/Desktop/Apps/BussGPT/sec_filings/reports/BMO_10-Q_2023.html",
+    "mda_path": "/Users/saadahmed/Desktop/Apps/BussGPT/sec_filings/reports/BMO_10-Q_2023_MDA.txt"
+  }
+]

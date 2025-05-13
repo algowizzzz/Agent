@@ -1,0 +1,27 @@
+{
+  "backup_date": "20250424_212806",
+  "database": "earnings_transcripts",
+  "collections": {
+    "transcripts": {
+      "document_count": 188
+    },
+    "category_summaries": {
+      "document_count": 10
+    },
+    "transcripts_backup": {
+      "document_count": 188
+    },
+    "categories": {
+      "document_count": 10
+    },
+    "department_summary": {
+      "document_count": 2
+    },
+    "document_summaries": {
+      "document_count": 72
+    },
+    "department_summaries": {
+      "document_count": 1
+    }
+  }
+}

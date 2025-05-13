@@ -1,0 +1,94 @@
+Queries the `ccr_reporting.db` database containing structured Counterparty Credit Risk (CCR) reporting data (sample data). Use this for specific questions about **counterparty details (ratings, country)**, **daily risk exposures** (Net MTM, Gross, PFE, Settlement), **risk limits**, **limit utilization**, **breach status**, or individual **trade details** related to counterparties like **'JPMorgan', 'BankOfAmerica', 'Citigroup'**, etc. Input is a natural language question about specific CCR metrics or counterparty/trade details within this database. Persona: SQL Database Expert (CCR Reporting Data). 
+
+---
+Other Metadata Provided:
+
+**Initialization Stage (When Agent/Tools are Created):**
+
+1.  **Database Schema (Actual Data):** 
+    *   The following schema information is read automatically by the LangChain `SQLDatabase` utility when connecting to `ccr_reporting.db`:
+    ```sql
+    CREATE TABLE report_counterparties (
+        customer_id INTEGER PRIMARY KEY,
+        customer_name TEXT,
+        short_name TEXT, -- Added short_name as implied by failed query logs
+        rating TEXT,
+        country TEXT,
+        primary_product TEXT,
+        total_exposure_usd REAL,
+        transit_no TEXT,
+        FOREIGN KEY (transit_no) REFERENCES transit_mapping (transit_no)
+    );
+    CREATE TABLE products (
+        product_id TEXT PRIMARY KEY,
+        product_name TEXT,
+        asset_class TEXT,
+        risk_bucket TEXT,
+        base_ccy TEXT,
+        issuer_country TEXT,
+        product_limit_usd REAL
+    );
+    CREATE TABLE securities (
+        ticker TEXT PRIMARY KEY,
+        security_name TEXT,
+        asset_class TEXT,
+        current_price REAL,
+        ccy TEXT,
+        issuer_country TEXT,
+        product_id TEXT,
+        FOREIGN KEY (product_id) REFERENCES products (product_id)
+    );
+    CREATE TABLE limits (
+        limit_id TEXT PRIMARY KEY,
+        limit_name TEXT,
+        product_id TEXT,
+        desk_id TEXT,
+        limit_amount_usd REAL,
+        breach_threshold_pct INTEGER, -- Renamed for clarity
+        ccy TEXT,
+        FOREIGN KEY (product_id) REFERENCES products (product_id)
+    );
+    CREATE TABLE transit_mapping (
+        transit_no TEXT PRIMARY KEY,
+        customer_id INTEGER,
+        desk_id TEXT,
+        branch_name TEXT,
+        region TEXT,
+        swift_code TEXT,
+        FOREIGN KEY (customer_id) REFERENCES report_counterparties (customer_id)
+    );
+    CREATE TABLE report_daily_exposures (
+        trade_id TEXT PRIMARY KEY,
+        report_date DATE, -- Added report_date as implied by failed query logs
+        counterparty_id INTEGER, -- Changed from customer_id for consistency
+        product_id TEXT,
+        security_ticker TEXT,
+        notional_usd REAL,
+        mtm_usd REAL,
+        desk_id TEXT,
+        exposure_usd REAL,
+        pfe_95_exposure REAL, -- Added pfe_95_exposure as implied by failed query logs
+        currency TEXT, -- Changed from ccy for consistency
+        FOREIGN KEY (counterparty_id) REFERENCES report_counterparties (customer_id),
+        FOREIGN KEY (product_id) REFERENCES products (product_id),
+        FOREIGN KEY (security_ticker) REFERENCES securities (ticker)
+    );
+    ```
+
+2.  **Database Dialect (Actual Data):** 
+    *   `sqlite`
+    *   How Provided: Detected by the `SQLDatabase` utility upon connection. Influences the specific SQL syntax generated.
+
+3.  **Internal Tool Prompt:**
+    *   The `SQLDatabaseChain` (used internally by the tool) has its own default prompt instructing the LLM how to convert natural language questions into valid SQLite SQL, using the provided schema. This prompt is part of the LangChain library code and is quite extensive, focusing on SQL generation rules, table/column selection, and result formatting. Providing the *exact* prompt text here is impractical and less informative than understanding its purpose.
+    *   How Provided: Defined within the LangChain library code when the `SQLDatabaseChain` is instantiated.
+
+4.  **Table/Column Metadata Hints (Attempted):**
+    *   The system *attempted* to query the database for specific comments or descriptive hints about tables/columns (as seen by the `Error getting metadata hints: no such column: product_type` warning in logs).
+    *   How Provided: Attempted via a query during the `SQLDatabase` initialization. Failed for the CCR DB in this case, so no additional hints were successfully supplied beyond the basic schema.
+
+**Execution Stage (When Tool is Used):**
+
+1.  **User Query (Actual Data Example):** 
+    *   `What is the exposure, notional, and mtm for JPMorgan?`
+    *   How Provided: Passed as the `Action Input` to the tool during the agent execution flow. 
