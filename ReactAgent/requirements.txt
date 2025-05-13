@@ -1,0 +1,18 @@
+pymongo>=4.6.0
+uuid==1.30
+anthropic>=0.18.1
+tiktoken==0.9.0
+tqdm==4.67.1
+langchain>=0.1.0
+langchain-anthropic>=0.1.0
+langchain-core>=0.1.0
+langgraph>=0.0.19
+python-dotenv>=1.0.0
+typing-extensions>=4.9.0
+pydantic>=2.6.0
+
+# Added for SQL database and data fetching
+yfinance
+pandas
+langchain-community
+langchain-experimental 

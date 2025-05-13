@@ -1,0 +1,46 @@
+.env
+.env.*
+*.pyc
+__pycache__/
+venv/
+.DS_Store 
+# Added by migration script
+# Python
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+# Virtual Environment
+ENV/
+# Logs
+logs/
+*.log
+# Data (sensitive)
+data/raw/
+data/processed/
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# MongoDB backups (commented to allow inclusion with this PR)
+# earnings_backup/
+# earnings_transcripts_backup.tar.gz
+# *.bson
+# *.tar.gz

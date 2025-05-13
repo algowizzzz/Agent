@@ -1,0 +1,33 @@
+<div class="chat-container">
+  <div class="connection-status" [ngClass]="{'connected': isConnected, 'disconnected': !isConnected}">
+    <span *ngIf="isConnected">Connected</span>
+    <span *ngIf="!isConnected">Disconnected: {{connectionError}}</span>
+  </div>
+
+  <div #messageContainer class="chat-messages">
+    <div *ngFor="let message of messages" class="message" [ngClass]="message.sender">
+      <div class="message-content" [innerHTML]="message.content | safeHtml"></div>
+      <div *ngIf="message.thinking" class="thinking-steps">
+        <pre>{{message.thinking}}</pre>
+      </div>
+    </div>
+  </div>
+  
+  <div class="input-container">
+    <textarea
+      class="message-input"
+      [(ngModel)]="userMessage"
+      (keydown)="onKeyDown($event)"
+      (input)="autoResize($event.target)"
+      placeholder="Type your message..."
+      [disabled]="!isConnected || isLoading"
+    ></textarea>
+    <button
+      class="send-button"
+      (click)="sendMessage()"
+      [disabled]="!isConnected || isLoading || !userMessage.trim()"
+    >
+      Send
+    </button>
+  </div>
+</div> 

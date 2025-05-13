@@ -1,0 +1,62 @@
+[
+  {
+    "_id": "6803c15cff3c615d1a8141e3",
+    "category_id": "c8c0dfb4-44f6-452d-a2c7-03d3a5c53ed7",
+    "name": "AMZN",
+    "description": "AMZN earnings call transcripts"
+  },
+  {
+    "_id": "6803c15cff3c615d1a8141e4",
+    "category_id": "4fe03043-773b-4762-af5d-8f6e2caef255",
+    "name": "AAPL",
+    "description": "AAPL earnings call transcripts"
+  },
+  {
+    "_id": "6803c15cff3c615d1a8141e5",
+    "category_id": "5decb0d8-9056-4bc3-9024-2cc8a683976f",
+    "name": "INTC",
+    "description": "INTC earnings call transcripts"
+  },
+  {
+    "_id": "6803c15cff3c615d1a8141e6",
+    "category_id": "ff1bf47b-bf06-48f9-a190-363c67f3ec93",
+    "name": "MU",
+    "description": "MU earnings call transcripts"
+  },
+  {
+    "_id": "6803c15cff3c615d1a8141e7",
+    "category_id": "989b35ce-b8fd-44dc-b53f-2d3233a85706",
+    "name": "GOOGL",
+    "description": "GOOGL earnings call transcripts"
+  },
+  {
+    "_id": "6803c15cff3c615d1a8141e8",
+    "category_id": "5d1b4d21-59cb-4ff3-bae1-fe9f1129cf18",
+    "name": "MSFT",
+    "description": "MSFT earnings call transcripts"
+  },
+  {
+    "_id": "6803c15cff3c615d1a8141e9",
+    "category_id": "1598ce28-8bb0-4787-ad40-f5227d3a72a6",
+    "name": "AMD",
+    "description": "AMD earnings call transcripts"
+  },
+  {
+    "_id": "6803c15cff3c615d1a8141ea",
+    "category_id": "077deca3-7e7e-4c48-b848-6f8cfcf84b5c",
+    "name": "ASML",
+    "description": "ASML earnings call transcripts"
+  },
+  {
+    "_id": "6803c15cff3c615d1a8141eb",
+    "category_id": "5602d908-a5c5-43c1-b888-975dff32a2c4",
+    "name": "NVDA",
+    "description": "NVDA earnings call transcripts"
+  },
+  {
+    "_id": "6803c15cff3c615d1a8141ec",
+    "category_id": "f39dc51b-689e-424d-af9b-0ba2d2c0bb86",
+    "name": "CSCO",
+    "description": "CSCO earnings call transcripts"
+  }
+]

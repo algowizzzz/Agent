@@ -1,0 +1,168 @@
+2025-04-27 13:58:19,997 - __main__ - INFO - Loading environment variables...
+2025-04-27 13:58:19,998 - __main__ - INFO - Environment variables loaded.
+2025-04-27 13:58:21,081 - __main__ - INFO - Initializing Flask app and SocketIO...
+2025-04-27 13:58:21,086 - __main__ - INFO - Flask app and SocketIO initialized.
+2025-04-27 13:58:21,086 - __main__ - INFO - Initializing HierarchicalRetrievalAgent...
+2025-04-27 13:58:21,086 - langchain_tools.logger - INFO - Initialized AgentLogger for agent HierarchicalAgent_v3_Refactored, conversation 5c3fa8d3-c228-41ec-a9e5-07741bce70ff
+2025-04-27 13:58:21,086 - langchain_tools.agent - DEBUG - Initializing LLM
+2025-04-27 13:58:21,086 - langchain_tools.agent - DEBUG - Initializing LLM
+2025-04-27 13:58:21,086 - langchain_tools.tool_factory - INFO - Initializing ChatAnthropic with model: claude-3-5-sonnet-20240620
+2025-04-27 13:58:21,087 - langchain_tools.agent - DEBUG - ChatAnthropic instance created successfully via factory
+2025-04-27 13:58:21,087 - langchain_tools.agent - INFO - LLM initialized successfully
+2025-04-27 13:58:21,087 - langchain_tools.agent - DEBUG - Initializing tools for Master Agent
+2025-04-27 13:58:21,087 - langchain_tools.tool_factory - INFO - [Financial Tool] Connecting to SQL Database: sqlite:////Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/financial_data.db
+2025-04-27 13:58:21,106 - langchain_tools.tool_factory - INFO - [Financial Tool] SQLDatabase connection successful. Tables: ['companies', 'daily_stock_prices', 'dividends', 'quarterly_balance_sheet', 'quarterly_income_statement', 'stock_splits']
+2025-04-27 13:58:21,117 - langchain_tools.tool_factory - INFO - [Financial Tool] Generated DB Metadata Hints for LLM.
+2025-04-27 13:58:21,117 - langchain_tools.tool_factory - INFO - [Financial Tool] SQLDatabaseChain created successfully.
+2025-04-27 13:58:21,117 - langchain_tools.tool_factory - INFO - [Transcript Agent Tool] Initializing internal tools...
+2025-04-27 13:58:21,117 - langchain_tools.tool_factory - INFO - [Transcript Agent Tool] Internal tools created: ['category_tool', 'metadata_lookup_tool', 'transcript_analysis_tool']
+2025-04-27 13:58:21,117 - langchain_tools.tool_factory - DEBUG - [Transcript Agent Tool] Prompt template created.
+2025-04-27 13:58:21,118 - langchain_tools.tool_factory - DEBUG - [Transcript Agent Tool] Internal ReAct agent created.
+2025-04-27 13:58:21,118 - langchain_tools.tool_factory - INFO - [Transcript Agent Tool] Internal AgentExecutor created.
+2025-04-27 13:58:21,118 - langchain_tools.tool_factory - INFO - [Transcript Agent Tool] Tool object created successfully.
+2025-04-27 13:58:21,118 - langchain_tools.agent_config - INFO - --- Starting dynamic tool description generation... ---
+2025-04-27 13:58:21,119 - langchain_tools.agent_config - INFO - --- Attempting to fetch DB examples for: financial_data.db ---
+2025-04-27 13:58:21,119 - langchain_tools.agent_config - DEBUG - Tried DB path (not found): /Users/saadahmed/Desktop/Apps/BussGPT/financial_data.db
+2025-04-27 13:58:21,119 - langchain_tools.agent_config - DEBUG - Tried DB path (not found): /Users/saadahmed/Desktop/Apps/BussGPT/data/financial_data.db
+2025-04-27 13:58:21,119 - langchain_tools.agent_config - INFO - Using DB path: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/financial_data.db
+2025-04-27 13:58:21,119 - langchain_tools.agent_config - INFO - --- Connecting to DB at: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/financial_data.db ---
+2025-04-27 13:58:21,119 - langchain_tools.agent_config - INFO - --- Executing query: SELECT DISTINCT ticker FROM daily_stock_prices WHERE ticker IS NOT NULL ORDER BY ticker LIMIT 3 on financial_data.db ---
+2025-04-27 13:58:21,119 - langchain_tools.agent_config - INFO - --- Successfully fetched 3 examples from financial_data.db ---
+2025-04-27 13:58:21,119 - langchain_tools.agent_config - INFO - --- Closing DB connection for: /Users/saadahmed/Desktop/Apps/BussGPT/scripts/data/financial_data.db ---
+2025-04-27 13:58:21,120 - langchain_tools.agent_config - INFO - --- Finished fetching DB examples for: financial_data.db ---
+2025-04-27 13:58:21,120 - langchain_tools.agent_config - INFO - --- CCR DB example fetching SKIPPED. ---
+2025-04-27 13:58:21,120 - langchain_tools.agent_config - INFO - --- Finished fetching all DB examples. ---
+2025-04-27 13:58:21,120 - langchain_tools.agent - DEBUG - Loaded Tool: financial_sql_query_tool with description: Queries a database containing structured financial market data. Use this for specific questions about historical stock prices (daily OHLC data **available for 2016-2020** for tickers like **'AAPL', 'AMD', 'AMZN'**, etc.), historical quarterly financials (income/balance sheet, limited dates), dividends, or stock splits. Input is a natural language question about specific data points. Persona: SQL Database Expert (Financial Data).
+2025-04-27 13:58:21,120 - langchain_tools.agent - DEBUG - Loaded Tool: transcript_search_summary_tool with description: Answers questions requiring qualitative analysis, summaries, or context from **earnings call transcripts**. Use for queries about company performance narratives, strategies, management commentary, outlook, or specific events discussed in calls (e.g., queries like **'What was management's outlook for cloud growth in the MSFT Q4 2020 call?'**). Input should be the original user query. Persona: Equity Research Analyst (Transcript Specialist).
+2025-04-27 13:58:21,120 - langchain_tools.agent - DEBUG - Loaded Tool: financial_news_search with description: Searches the web for financial news and information relevant to a query about companies, markets, economic events, or financial topics. To focus results on reliable financial sources, preferentially construct the search term using the 'site:' operator. For example: 'query site:reuters.com OR site:marketwatch.com OR site:finance.yahoo.com OR site:seekingalpha.com'. This tool retrieves recent news headlines, summaries, and links, helping to understand recent events and their potential market impact.
+2025-04-27 13:58:21,120 - langchain_tools.agent - INFO - Master Agent tools initialized successfully
+2025-04-27 13:58:21,120 - langchain_tools.agent - INFO - Master Agent initialized with tools: ['financial_sql_query_tool', 'transcript_search_summary_tool', 'financial_news_search']
+2025-04-27 13:58:21,120 - langchain_tools.orchestrator - INFO - Orchestrator initialized with tools: ['financial_sql_query_tool', 'transcript_search_summary_tool', 'financial_news_search']
+2025-04-27 13:58:21,120 - langchain_tools.agent - INFO - Orchestrator initialized
+2025-04-27 13:58:21,120 - langchain_tools.agent - DEBUG - Initializing Master Agent executor
+2025-04-27 13:58:21,120 - langchain_tools.agent - INFO - Master Agent executor initialized successfully
+2025-04-27 13:58:21,120 - __main__ - INFO - HierarchicalRetrievalAgent initialized successfully.
+2025-04-27 13:58:21,121 - __main__ - INFO - Starting backend server...
+2025-04-27 13:58:21,121 - __main__ - INFO - Attempting to start SocketIO server on 0.0.0.0:5001...
+(68198) wsgi starting up on http://0.0.0.0:5001
+(68198) accepted ('127.0.0.1', 50984)
+127.0.0.1 - - [27/Apr/2025 13:58:22] "GET /socket.io/?EIO=4&transport=polling&t=ydgdwliv HTTP/1.1" 200 352 0.000317
+2025-04-27 13:58:22,014 - __main__ - INFO - Client connected: 7-1I9wNmRP5J737-AAAB
+127.0.0.1 - - [27/Apr/2025 13:58:22] "POST /socket.io/?EIO=4&transport=polling&t=ydge37lz&sid=oHSobT9sJzfaDXmmAAAA HTTP/1.1" 200 219 0.001727
+(68198) accepted ('127.0.0.1', 50986)
+(68198) accepted ('127.0.0.1', 50989)
+127.0.0.1 - - [27/Apr/2025 13:58:22] "GET /socket.io/?EIO=4&transport=polling&t=ydge4dfg&sid=oHSobT9sJzfaDXmmAAAA HTTP/1.1" 200 233 0.000117
+127.0.0.1 - - [27/Apr/2025 13:58:22] "GET /socket.io/?EIO=4&transport=polling&t=ydge8pgr&sid=oHSobT9sJzfaDXmmAAAA HTTP/1.1" 200 233 0.000094
+(68198) accepted ('127.0.0.1', 51437)
+127.0.0.1 - - [27/Apr/2025 13:59:31] "GET /socket.io/?transport=polling&EIO=4&t=1745776771.4701629 HTTP/1.1" 200 300 0.000221
+(68198) accepted ('127.0.0.1', 51439)
+2025-04-27 13:59:31,479 - __main__ - INFO - Client connected: GZ-2xuGehegUBmsVAAAD
+2025-04-27 14:00:34,488 - __main__ - INFO - Client disconnected: GZ-2xuGehegUBmsVAAAD
+127.0.0.1 - - [27/Apr/2025 14:00:34] "GET /socket.io/?transport=websocket&EIO=4&sid=oftKTfXWuLu_jEJSAAAC&t=1745776771.477041 HTTP/1.1" 200 0 63.011386
+2025-04-27 14:22:33,115 - __main__ - INFO - Client disconnected: 7-1I9wNmRP5J737-AAAB
+127.0.0.1 - - [27/Apr/2025 14:22:33] "GET /socket.io/?EIO=4&transport=websocket&sid=oHSobT9sJzfaDXmmAAAA HTTP/1.1" 200 0 1451.101606
+(68198) accepted ('127.0.0.1', 49828)
+127.0.0.1 - - [27/Apr/2025 14:37:51] "GET /socket.io/?EIO=4&transport=polling&t=zs8guzyz HTTP/1.1" 200 352 0.002373
+2025-04-27 14:37:51,259 - __main__ - INFO - Client connected: OoGPE72NOuVhryAAAAAF
+127.0.0.1 - - [27/Apr/2025 14:37:51] "POST /socket.io/?EIO=4&transport=polling&t=zs8i3jq7&sid=AheMu7_3BG8o-N9qAAAE HTTP/1.1" 200 219 0.005393
+(68198) accepted ('127.0.0.1', 49831)
+(68198) accepted ('127.0.0.1', 49832)
+127.0.0.1 - - [27/Apr/2025 14:37:51] "GET /socket.io/?EIO=4&transport=polling&t=zs8i471q&sid=AheMu7_3BG8o-N9qAAAE HTTP/1.1" 200 233 0.000181
+127.0.0.1 - - [27/Apr/2025 14:37:51] "GET /socket.io/?EIO=4&transport=polling&t=zs8irbud&sid=AheMu7_3BG8o-N9qAAAE HTTP/1.1" 200 233 0.000139
+/Users/saadahmed/Desktop/Apps/BussGPT/venv/lib/python3.13/site-packages/werkzeug/exceptions.py:79: RuntimeWarning: coroutine 'handle_chat_message' was never awaited
+  def __init__(
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+2025-04-27 14:38:58,081 - __main__ - INFO - Client disconnected: OoGPE72NOuVhryAAAAAF
+127.0.0.1 - - [27/Apr/2025 14:38:58] "GET /socket.io/?EIO=4&transport=websocket&sid=AheMu7_3BG8o-N9qAAAE HTTP/1.1" 200 0 66.821452
+127.0.0.1 - - [27/Apr/2025 14:38:58] "GET /socket.io/?EIO=4&transport=polling&t=zto41zxv HTTP/1.1" 200 352 0.000523
+2025-04-27 14:38:58,158 - __main__ - INFO - Client connected: ynYc8geHjgtAuNmrAAAH
+127.0.0.1 - - [27/Apr/2025 14:38:58] "POST /socket.io/?EIO=4&transport=polling&t=zto4o4lx&sid=8iLGNg2J9Y34-uJQAAAG HTTP/1.1" 200 219 0.003616
+(68198) accepted ('127.0.0.1', 50253)
+127.0.0.1 - - [27/Apr/2025 14:38:58] "GET /socket.io/?EIO=4&transport=polling&t=zto4pf5u&sid=8iLGNg2J9Y34-uJQAAAG HTTP/1.1" 200 362 0.000394
+127.0.0.1 - - [27/Apr/2025 14:38:58] "GET /socket.io/?EIO=4&transport=polling&t=zto59p63&sid=8iLGNg2J9Y34-uJQAAAG HTTP/1.1" 200 233 0.000170
+2025-04-27 14:40:31,032 - __main__ - INFO - Client disconnected: ynYc8geHjgtAuNmrAAAH
+127.0.0.1 - - [27/Apr/2025 14:40:31] "GET /socket.io/?EIO=4&transport=websocket&sid=8iLGNg2J9Y34-uJQAAAG HTTP/1.1" 200 0 92.870131
+127.0.0.1 - - [27/Apr/2025 14:40:31] "GET /socket.io/?EIO=4&transport=polling&t=zvo0zu4k HTTP/1.1" 200 352 0.031199
+(68198) accepted ('127.0.0.1', 50566)
+2025-04-27 14:40:31,386 - __main__ - INFO - Client connected: fx9lcyz0dzYdHzJQAAAJ
+127.0.0.1 - - [27/Apr/2025 14:40:31] "POST /socket.io/?EIO=4&transport=polling&t=zvo254t9&sid=ONbQ2yUu5jHPq53AAAAI HTTP/1.1" 200 219 0.002657
+127.0.0.1 - - [27/Apr/2025 14:40:31] "GET /socket.io/?EIO=4&transport=polling&t=zvo26i8k&sid=ONbQ2yUu5jHPq53AAAAI HTTP/1.1" 200 233 0.000552
+127.0.0.1 - - [27/Apr/2025 14:40:31] "GET /socket.io/?EIO=4&transport=polling&t=zvo2rjz9&sid=ONbQ2yUu5jHPq53AAAAI HTTP/1.1" 200 233 0.000185
+2025-04-27 14:41:01,341 - __main__ - INFO - Client disconnected: fx9lcyz0dzYdHzJQAAAJ
+127.0.0.1 - - [27/Apr/2025 14:41:01] "GET /socket.io/?EIO=4&transport=websocket&sid=ONbQ2yUu5jHPq53AAAAI HTTP/1.1" 200 0 29.962304
+(68198) accepted ('127.0.0.1', 50654)
+127.0.0.1 - - [27/Apr/2025 14:41:02] "GET /socket.io/?EIO=4&transport=polling&t=zwcena58 HTTP/1.1" 200 352 0.000353
+2025-04-27 14:41:02,933 - __main__ - INFO - Client connected: rYw_ESWEAtAA6nG9AAAL
+127.0.0.1 - - [27/Apr/2025 14:41:02] "POST /socket.io/?EIO=4&transport=polling&t=zwcertmt&sid=n-wrDUOHi04v4SFJAAAK HTTP/1.1" 200 219 0.001194
+(68198) accepted ('127.0.0.1', 50657)
+(68198) accepted ('127.0.0.1', 50658)
+127.0.0.1 - - [27/Apr/2025 14:41:02] "GET /socket.io/?EIO=4&transport=polling&t=zwcerv89&sid=n-wrDUOHi04v4SFJAAAK HTTP/1.1" 200 233 0.000080
+127.0.0.1 - - [27/Apr/2025 14:41:02] "GET /socket.io/?EIO=4&transport=polling&t=zwcev8zs&sid=n-wrDUOHi04v4SFJAAAK HTTP/1.1" 200 233 0.000070
+127.0.0.1 - - [27/Apr/2025 14:41:14] "GET /socket.io/?EIO=4&transport=polling&t=zwl03wlc HTTP/1.1" 200 352 0.000517
+2025-04-27 14:41:14,100 - __main__ - INFO - Client connected: PJsnIDFuhFhVSHMaAAAN
+127.0.0.1 - - [27/Apr/2025 14:41:14] "POST /socket.io/?EIO=4&transport=polling&t=zwl0wyyg&sid=fOwvayX6mWgj-JFoAAAM HTTP/1.1" 200 219 0.001494
+127.0.0.1 - - [27/Apr/2025 14:41:14] "GET /socket.io/?EIO=4&transport=polling&t=zwl0xtwv&sid=fOwvayX6mWgj-JFoAAAM HTTP/1.1" 200 362 0.000150
+(68198) accepted ('127.0.0.1', 50701)
+127.0.0.1 - - [27/Apr/2025 14:41:14] "GET /socket.io/?EIO=4&transport=polling&t=zwl157pe&sid=fOwvayX6mWgj-JFoAAAM HTTP/1.1" 200 233 0.000234
+(68198) accepted ('127.0.0.1', 51153)
+127.0.0.1 - - [27/Apr/2025 14:44:12] "GET /socket.io/?transport=polling&EIO=4&t=1745779452.163821 HTTP/1.1" 200 300 0.000706
+(68198) accepted ('127.0.0.1', 51155)
+2025-04-27 14:44:12,176 - __main__ - INFO - Client connected: dn2ka970-04KxCiXAAAP
+2025-04-27 14:44:39,196 - __main__ - INFO - Client disconnected: dn2ka970-04KxCiXAAAP
+127.0.0.1 - - [27/Apr/2025 14:44:39] "GET /socket.io/?transport=websocket&EIO=4&sid=-cUcmjgMa7rx4dysAAAO&t=1745779452.173432 HTTP/1.1" 200 0 27.022990
+(68198) accepted ('127.0.0.1', 51323)
+127.0.0.1 - - [27/Apr/2025 14:45:26] "GET /socket.io/?transport=polling&EIO=4&t=1745779526.082093 HTTP/1.1" 200 300 0.000149
+(68198) accepted ('127.0.0.1', 51325)
+/Users/saadahmed/Desktop/Apps/BussGPT/venv/lib/python3.13/site-packages/eventlet/greenio/base.py:370: RuntimeWarning: coroutine 'handle_chat_message' was never awaited
+  return send_method(data, *args)
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+2025-04-27 14:45:26,092 - __main__ - INFO - Client connected: kkCiTS1FARRGzhduAAAR
+2025-04-27 14:45:53,104 - __main__ - INFO - Client disconnected: kkCiTS1FARRGzhduAAAR
+127.0.0.1 - - [27/Apr/2025 14:45:53] "GET /socket.io/?transport=websocket&EIO=4&sid=6-FkmG0ZBb5LP4HBAAAQ&t=1745779526.0887501 HTTP/1.1" 200 0 27.015825
+(68198) accepted ('127.0.0.1', 51442)
+127.0.0.1 - - [27/Apr/2025 14:46:02] "GET /socket.io/?transport=polling&EIO=4&t=1745779562.964161 HTTP/1.1" 200 300 0.000168
+(68198) accepted ('127.0.0.1', 51444)
+2025-04-27 14:46:02,973 - __main__ - INFO - Client connected: IyNNsqH89YhS7RrRAAAT
+2025-04-27 14:46:29,983 - __main__ - INFO - Client disconnected: IyNNsqH89YhS7RrRAAAT
+127.0.0.1 - - [27/Apr/2025 14:46:29] "GET /socket.io/?transport=websocket&EIO=4&sid=9ek_lCcsykQyUecvAAAS&t=1745779562.971232 HTTP/1.1" 200 0 27.012054
+(68198) accepted ('127.0.0.1', 51570)
+127.0.0.1 - - [27/Apr/2025 14:46:55] "GET /socket.io/?EIO=4&transport=polling&t=PPuakQW HTTP/1.1" 200 335 0.001202
+2025-04-27 14:46:55,401 - __main__ - INFO - Client connected: 8INWA0V619cyZgjDAAAV
+127.0.0.1 - - [27/Apr/2025 14:46:55] "POST /socket.io/?EIO=4&transport=polling&t=PPuakQc&sid=zPcwPv3-NoznZjPGAAAU HTTP/1.1" 200 202 0.002557
+(68198) accepted ('127.0.0.1', 51573)
+(68198) accepted ('127.0.0.1', 51574)
+127.0.0.1 - - [27/Apr/2025 14:46:55] "GET /socket.io/?EIO=4&transport=polling&t=PPuakQd&sid=zPcwPv3-NoznZjPGAAAU HTTP/1.1" 200 216 0.000103
+127.0.0.1 - - [27/Apr/2025 14:46:55] "GET /socket.io/?EIO=4&transport=polling&t=PPuakQh&sid=zPcwPv3-NoznZjPGAAAU HTTP/1.1" 200 216 0.000070
+(68198) accepted ('127.0.0.1', 51580)
+127.0.0.1 - - [27/Apr/2025 14:46:56] "GET /socket.io/?transport=polling&EIO=4&t=1745779616.8118231 HTTP/1.1" 200 300 0.000160
+(68198) accepted ('127.0.0.1', 51582)
+2025-04-27 14:46:56,821 - __main__ - INFO - Client connected: kCXLecUIYi4NVVJ9AAAX
+(68198) accepted ('127.0.0.1', 52672)
+2025-04-27 14:55:05,587 - __main__ - INFO - Client connected: Vu7aySQg6Wm8dWlUAAAZ
+2025-04-27 14:55:16,601 - __main__ - INFO - Client disconnected: Vu7aySQg6Wm8dWlUAAAZ
+127.0.0.1 - - [27/Apr/2025 14:55:16] "GET /socket.io/?transport=websocket&EIO=4&t=1745780105.580499 HTTP/1.1" 200 0 11.017589
+(68198) accepted ('127.0.0.1', 52873)
+2025-04-27 14:56:22,074 - __main__ - INFO - Client connected: dC_TfGlQlDL9jK2XAAAb
+2025-04-27 14:56:52,104 - __main__ - INFO - Client disconnected: dC_TfGlQlDL9jK2XAAAb
+127.0.0.1 - - [27/Apr/2025 14:56:52] "GET /socket.io/?transport=websocket&EIO=4&t=1745780182.071219 HTTP/1.1" 200 0 30.031873
+(68198) accepted ('127.0.0.1', 52990)
+/Users/saadahmed/Desktop/Apps/BussGPT/venv/lib/python3.13/site-packages/eventlet/hubs/timer.py:59: RuntimeWarning: coroutine 'handle_chat_message' was never awaited
+  cb(*args, **kw)
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+2025-04-27 14:57:07,185 - __main__ - INFO - Client connected: uHmSLayA5fgdnmVjAAAd
+2025-04-27 14:57:37,245 - __main__ - INFO - Client disconnected: uHmSLayA5fgdnmVjAAAd
+127.0.0.1 - - [27/Apr/2025 14:57:37] "GET /socket.io/?transport=websocket&EIO=4&t=1745780227.179122 HTTP/1.1" 200 0 30.065184
+(68198) accepted ('127.0.0.1', 53417)
+2025-04-27 15:00:18,872 - __main__ - INFO - Client connected: v6LPmtzapsRX8s0XAAAf
+2025-04-27 15:01:20,121 - __main__ - INFO - Client disconnected: v6LPmtzapsRX8s0XAAAf
+127.0.0.1 - - [27/Apr/2025 15:01:20] "GET /socket.io/?transport=websocket&EIO=4&t=1745780418.84656 HTTP/1.1" 200 0 61.255026
+2025-04-27 15:05:35,738 - __main__ - INFO - Client disconnected: PJsnIDFuhFhVSHMaAAAN
+127.0.0.1 - - [27/Apr/2025 15:05:35] "GET /socket.io/?EIO=4&transport=websocket&sid=fOwvayX6mWgj-JFoAAAM HTTP/1.1" 200 0 1461.643173
+(68198) accepted ('127.0.0.1', 54155)
+127.0.0.1 - - [27/Apr/2025 15:05:35] "GET /socket.io/?EIO=4&transport=polling&t=0rwvmsf3 HTTP/1.1" 200 352 0.000302
+2025-04-27 15:05:35,814 - __main__ - INFO - Client connected: q-7MEf3zd5LzRqgiAAAh
+127.0.0.1 - - [27/Apr/2025 15:05:35] "POST /socket.io/?EIO=4&transport=polling&t=0rww0mpb&sid=5yinHKyGDKcI-kbIAAAg HTTP/1.1" 200 219 0.004302
+(68198) accepted ('127.0.0.1', 54157)
+(68198) accepted ('127.0.0.1', 54159)
+127.0.0.1 - - [27/Apr/2025 15:05:35] "GET /socket.io/?EIO=4&transport=polling&t=0rww0nle&sid=5yinHKyGDKcI-kbIAAAg HTTP/1.1" 200 362 0.000295
+127.0.0.1 - - [27/Apr/2025 15:05:35] "GET /socket.io/?EIO=4&transport=polling&t=0rwwmcfv&sid=5yinHKyGDKcI-kbIAAAg HTTP/1.1" 200 233 0.000098

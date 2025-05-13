@@ -1,0 +1,60 @@
+{
+  "department_tool": {
+    "model": "claude-3-haiku-20240307",
+    "temperature": 0.0,
+    "prompt_template": "You are an expert retrieval agent analyzing high-level department information. Given the user query:\n\"{query}\"\nand the global department summary:\n{formatted_summary}\n\nHere are summaries of available categories:\n{category_summaries}\n\nProvide a concise analysis in JSON format with these fields:\n- thought: A brief explanation of your reasoning process (1-2 sentences)\n- answer: A clear, focused answer to the query based *only* on the department summary\n- category: The most relevant category ticker(s) if the query requires deeper analysis (e.g., AAPL, MSFT), otherwise null\n- confidence: A score (0-10) indicating how well the department summary answers the query directly\n\nFormat your response EXACTLY like this:\n{\n  \"thought\": \"Brief reasoning...\",\n  \"answer\": \"Clear answer...\",\n  \"category\": \"AAPL\",\n  \"confidence\": 7 \n}\n\nKeep the response focused and avoid nested quotes within fields. If the query requires category-level detail, provide the relevant category ticker.",
+    "default_companies": [
+      "AAPL",
+      "AMD",
+      "AMZN",
+      "ASML",
+      "CSCO",
+      "GOOGL",
+      "INTC",
+      "MSFT",
+      "MU",
+      "NVDA"
+    ],
+    "default_department": "TECH",
+    "default_fallback_company": "None",
+    "response_format": {
+      "thought": "",
+      "answer": "",
+      "category": "AAPL"
+    }
+  },
+  "category_tool": {
+    "model": "claude-3-haiku-20240307",
+    "temperature": 0.0,
+    "prompt_template": "You are a focused retrieval agent analyzing a specific company/category. Given the query:\n\"{query}\"\nand the summary for category \"{category_id}\":\n{formatted_summary}\n\nProvide a detailed analysis following these steps:\n1. Analyze if you can answer the query from the summary\n2. Select relevant documents based on:\n   - Temporal relevance (date match)\n   - Content relevance (topic match)\n   - Query specificity (detail level)\n3. Explain your document selection reasoning in the 'thought' field\n\nRespond in JSON format:\n{\n  \"thought\": \"<explain your analysis process and document selection reasoning>\",\n  \"answer\": \"<detailed answer from summary if possible, otherwise state information needed>\",\n  \"relevant_doc_ids\": [\"<doc_id1>\", \"<doc_id2>\"],\n  \"confidence\": <0-10 score based on summary coverage>,\n  \"requires_documents\": <true if specific details needed from documents, else false>\n}\n\nNotes:\n- Select 3-5 most relevant documents unless more are clearly necessary.\n- Prioritize documents from the time period mentioned in query.\n- Confidence reflects how well the *summary* answers the query.\n- Set requires_documents=true if the answer requires details only found in specific documents.",
+    "default_categories": [
+      "AAPL",
+      "AMD",
+      "AMZN",
+      "ASML",
+      "CSCO",
+      "GOOGL",
+      "INTC",
+      "MSFT",
+      "MU",
+      "NVDA"
+    ],
+    "default_category": "AAPL",
+    "default_fallback_document": "latest_transcript",
+    "response_format": {
+      "thought": "",
+      "document_ids": [],
+      "answer": ""
+    }
+  },
+  "document_tool": {
+    "model": "claude-3-haiku-20240307",
+    "temperature": 0.0,
+    "prompt_template": "You are analyzing specific documents (e.g., earnings call transcripts) to answer a user's query.\n\nQuery: {query}\n\nDocuments:\n{formatted_documents}\n\nBased *only* on these documents, provide:\n1. A detailed answer to the query.\n2. Specific evidence (quotes) from the documents, including the document ID for each quote.\n3. A confidence score (0-10) based *only* on how well these specific documents support the answer.\n4. Your reasoning process in the 'thought' field.\n\nRespond in JSON format:\n{\n  \"thought\": \"<explain how you analyzed the documents and derived the answer/evidence>\",\n  \"answer\": \"<detailed response based ONLY on provided documents>\",\n  \"evidence\": [\"<quote> (Document: <doc_id>)\", ...],\n  \"confidence\": <0-10 score based on document support>\n}",
+    "response_format": {
+      "answer": "",
+      "evidence": [],
+      "confidence": 0
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "status": "success",
+  "result": "Based on the analysis performed by the specialized ccr_sql_query_tool (SQL Database Expert for CCR Reporting Data), here is the response to your query: The rating for JPMorgan Chase & Co. is AA-.",
+  "error": null,
+  "evidence": [],
+  "confidence": 0.0,
+  "tool_sequence": [],
+  "category_identified": null
+}
