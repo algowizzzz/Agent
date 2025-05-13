@@ -86,89 +86,40 @@ def confirm_plan_with_user(plan_text: str) -> Tuple[bool, str]:
 
     Returns:
         A tuple: (approved: bool, feedback_or_plan: str)
-        - (True, plan_text) if the user approves
-        - (False, user_feedback) if the user rejects and provides feedback
-        - (False, "CANCELLED") if the user cancels
+        - (True, plan_text) if the user approves.
+        - (False, user_feedback) if the user rejects and provides feedback.
+        - (False, "CANCELLED") if the user cancels.
     """
     # Add basic check for error in plan
     if plan_text.startswith("Error:"):
         print(f"\nPlan Generation Failed:\n{plan_text}")
         logger.error(f"[Confirmation] Plan generation failed, cannot confirm: {plan_text}")
-        return False, "CANCELLED"  # Treat plan error as cancellation
-
-    # Parse and display plan steps clearly
+        return False, "CANCELLED" # Treat plan error as cancellation
+        
     print("\nProposed Plan:")
     print("--------------")
-    steps = plan_text.split("\n")
-    for i, step in enumerate(steps, 1):
-        if step.strip():  # Skip empty lines
-            print(f"Step {i}: {step}")
+    print(plan_text)
     print("--------------")
 
     while True:
-        print("\nOptions:")
-        print("1. yes/y - Execute the entire plan")
-        print("2. no/n  - Provide feedback for improvement")
-        print("3. step  - Approve/reject specific steps")
-        print("4. cancel - Cancel execution")
-        
-        confirm = input("\nYour choice: ").strip().lower()
-        
+        confirm = input("Execute this plan? (yes/no/cancel): ").strip().lower()
         if confirm in ("yes", "y"):
             logger.info("[Confirmation] Plan approved by user.")
             return True, plan_text
-            
-        elif confirm in ("no", "n"):
+        elif confirm == "no" or confirm == "n":
             logger.info("[Confirmation] Plan rejected by user.")
-            print("\nFeedback options:")
-            print("1. General feedback")
-            print("2. Step-specific feedback")
-            print("3. Suggest alternative approach")
-            
-            feedback_type = input("Choose feedback type (1-3): ").strip()
-            
-            if feedback_type == "1":
-                feedback = input("Please provide general feedback: ").strip()
-            elif feedback_type == "2":
-                step_num = input("Which step number needs feedback? ").strip()
-                step_feedback = input(f"Feedback for step {step_num}: ").strip()
-                feedback = f"Step {step_num}: {step_feedback}"
-            elif feedback_type == "3":
-                feedback = input("Please suggest an alternative approach: ").strip()
-            else:
-                feedback = input("Please provide feedback: ").strip()
-                
+            feedback = input("Please provide feedback for re-planning, or type 'cancel' to abort: ").strip()
             if feedback.lower() == 'cancel':
                 logger.info("[Confirmation] User cancelled after rejecting plan.")
                 return False, "CANCELLED"
             else:
                 logger.info(f"[Confirmation] User provided feedback: {feedback}")
-                return False, feedback
-                
-        elif confirm == "step":
-            modified_steps = []
-            for i, step in enumerate(steps, 1):
-                if step.strip():
-                    print(f"\nStep {i}: {step}")
-                    step_confirm = input(f"Approve step {i}? (yes/no/modify): ").strip().lower()
-                    if step_confirm in ("yes", "y"):
-                        modified_steps.append(step)
-                    elif step_confirm == "modify":
-                        new_step = input("Enter modified step: ").strip()
-                        modified_steps.append(new_step)
-                    # If no, skip this step
-            
-            if modified_steps:
-                return True, "\n".join(modified_steps)
-            else:
-                return False, "CANCELLED"
-                
+                return False, feedback # Return feedback for re-planning
         elif confirm == "cancel":
-            logger.info("[Confirmation] User cancelled confirmation.")
-            return False, "CANCELLED"
-            
+             logger.info("[Confirmation] User cancelled confirmation.")
+             return False, "CANCELLED"
         else:
-            print("Invalid input. Please choose from the available options.")
+            print("Invalid input. Please enter 'yes', 'no', or 'cancel'.")
 
 # --- Helper Function to Load Prompt from TXT --- 
 def _load_prompt_from_txt(file_path: str) -> BasePromptTemplate:

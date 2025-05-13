@@ -10,8 +10,6 @@ import inspect # Needed for argument inspection
 import json # Potentially for plan parsing
 import re # For plan parsing
 from typing import Dict, Any, Callable, List, Tuple # Add types for memory
-import time
-import textwrap
 
 from dotenv import load_dotenv
 
@@ -88,69 +86,11 @@ class BasicAgent:
             self.thinking_steps: List[str] = []
             logger.info("Thinking steps tracking initialized.")
 
-            # Initialize persona
-            self._initialize_persona()
-            logger.info("Persona initialized successfully.")
-
         except Exception as e:
             logger.error(f"Agent Initialization Failed: {e}", exc_info=True)
             raise 
 
         logger.info("BasicAgent initialized successfully.")
-
-    def _initialize_persona(self) -> None:
-        """Initialize the agent's persona using the persona prompt and display greeting."""
-        try:
-            # Load persona prompt
-            prompt_dir = os.path.join(os.path.dirname(__file__), 'prompts')
-            persona_file = os.path.join(prompt_dir, 'persona_init.txt')
-            
-            if not os.path.exists(persona_file):
-                logger.error(f"Persona file not found at {persona_file}")
-                raise FileNotFoundError(f"Persona file not found at {persona_file}")
-            
-            with open(persona_file, 'r') as f:
-                persona_prompt = f.read()
-            
-            # Initialize with persona and generate greeting
-            system_prompt = f"""You are the BMO Enterprise Risk Assistant. Using the following persona definition, create a professional and welcoming greeting for the user. The greeting should:
-
-1. Introduce yourself as the BMO Enterprise Risk Assistant
-2. Acknowledge your audience (BMO Enterprise Risk employees)
-3. Provide a clear, structured overview of your capabilities, including:
-   - Available tools and their purposes
-   - Data sources and their scope
-   - Types of analysis you can perform
-4. End with a brief instruction on how to begin (i.e., "Please feel free to ask questions about...")
-
-Format the response in a clean, professional way using markdown for structure.
-Keep the tone professional but approachable.
-
-PERSONA DEFINITION:
-{persona_prompt}"""
-
-            messages = [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content="Generate a professional greeting and capabilities introduction.")
-            ]
-            
-            response = self.llm.invoke(messages)
-            greeting = response.content.strip()
-            
-            logger.info("Persona initialized with capabilities and limitations")
-            self._add_thinking_step("Initialized as BMO Enterprise Risk Assistant with verified capabilities")
-            
-            # Store initialization in memory
-            self.memory.append(("INITIALIZATION", greeting))
-            
-            # Display the greeting
-            print("\n=== BMO Enterprise Risk Assistant ===\n")
-            print(greeting)
-            print("\n=====================================\n")
-            
-        except Exception as e:
-            logger.error(f"Failed to initialize persona: {e}", exc_info=True)
-            raise
 
     # --- Agent Methods --- 
 
@@ -201,10 +141,8 @@ PERSONA DEFINITION:
 3. Capabilities: Only financial analysis, data lookup, and business research are within scope
 4. Specificity: Ensure the query is clear and specific enough to be processed
 
-IMPORTANT: If the query contains context from previous conversations (indicated by "Context:" or similar markers), treat it as a follow-up question and be more lenient with specificity requirements. Use the provided context to understand the full meaning of the query.
-
 For EACH query, FIRST determine if it should be:
-- PASSED: The query is safe, appropriate, within scope and specific enough (or has sufficient context)
+- PASSED: The query is safe, appropriate, within scope and specific enough
 - MODIFIED: The query needs minor adjustments to be processable (e.g., clarification, rewording)
 - REJECTED: The query violates guidelines and should not be processed
 
@@ -217,11 +155,7 @@ THEN respond in the following JSON format ONLY:
 }
 
 The "pass" field should be true for both PASSED and MODIFIED decisions, and false for REJECTED.
-
-Remember:
-- Follow-up questions with context should generally pass if they're safe and appropriate
-- Use the context to evaluate specificity rather than rejecting unclear follow-ups
-- Only reject if there are safety/appropriateness concerns or if the query is completely outside scope"""
+"""
         
         human_prompt = f"Please evaluate this user query: \"{query}\""
         
@@ -365,120 +299,131 @@ Respond Now."""
 
     def _execute_plan(self, plan: str) -> Dict[str, Any]:
         """Parses the plan and executes the specified tool steps sequentially."""
+        logger.info(f"[Executor] Executing full plan:\n{plan}")
+        results = {} # Store results with unique keys
+        # Track tool usage counts for unique keys
+        tool_usage_counters = {}
+        planned_steps = []
+
+        # --- Parse the plan text into steps --- 
+        # Assumes format: Tool: [Name]\nInput: [Input] potentially repeated
+        lines = plan.strip().split('\n')
+        current_tool = None
+        current_input_lines = []
+        for line in lines:
+            line_strip = line.strip()
+            tool_match = re.match(r"Tool:\s*(.*)", line_strip)
+            input_match = re.match(r"Input:\s*(.*)", line_strip)
+
+            if tool_match:
+                # If we were gathering input for a previous tool, store it
+                if current_tool and current_input_lines:
+                    planned_steps.append({"tool": current_tool, "input": "\n".join(current_input_lines).strip()})
+                    current_input_lines = [] # Reset for next input
+                current_tool = tool_match.group(1).strip()
+            elif input_match and current_tool: # Start gathering input for the current tool
+                current_input_lines = [input_match.group(1).strip()]
+            elif current_tool and current_input_lines: # Continue gathering multi-line input
+                 current_input_lines.append(line) # Append the raw line to preserve formatting
         
-        results = {}
-        steps = plan.split('\n')
-        total_steps = len([s for s in steps if s.strip()])
+        # Add the last step if any
+        if current_tool and current_input_lines:
+            planned_steps.append({"tool": current_tool, "input": "\n".join(current_input_lines).strip()})
         
-        print("\nExecution Progress:")
-        print("------------------")
-        
-        for step_num, step in enumerate(steps, 1):
-            if not step.strip():
-                continue
+        logger.info(f"[Executor] Parsed {len(planned_steps)} steps from plan.")
+        if not planned_steps:
+            logger.warning("[Executor] No valid steps parsed from plan.")
+            self._add_thinking_step("Unable to parse execution steps from plan...")
+            return {"error": "No valid execution steps could be parsed from the plan."}
+
+        # --- Execute each step --- 
+        print("\nExecuting steps. Press Ctrl+C at any time to interrupt processing.")
+        for i, step in enumerate(planned_steps):
+            tool_name = step["tool"]
+            tool_input = step["input"]
+            step_num = i + 1
+            logger.info(f"[Executor] Executing Step {step_num}/{len(planned_steps)}: Tool='{tool_name}', Input='{tool_input[:100]}...'")
             
-            print(f"\nStep {step_num}/{total_steps}: {step}")
-            print("Status: Starting...")
+            # Add specific thinking step for each tool execution
+            if tool_name == "FinancialSQL":
+                self._add_thinking_step(f"Querying financial database: '{tool_input[:50]}...'")
+            elif tool_name == "CCRSQL":
+                self._add_thinking_step(f"Analyzing credit risk data: '{tool_input[:50]}...'")
+            elif tool_name == "FinancialNewsSearch":
+                self._add_thinking_step(f"Searching for financial news: '{tool_input[:50]}...'")
+            elif tool_name == "EarningsCallSummary":
+                self._add_thinking_step(f"Analyzing earnings call transcripts: '{tool_input[:50]}...'")
+            elif tool_name == "ControlAnalysis":
+                self._add_thinking_step(f"Analyzing operational control: '{tool_input[:50]}...'")
+            elif tool_name == "SECFilingsAnalysis":
+                self._add_thinking_step(f"Analyzing SEC filing documents: '{tool_input[:50]}...'")
+            else:
+                self._add_thinking_step(f"Executing {tool_name}: '{tool_input[:50]}...'")
             
+            tool_function = self.tools_map.get(tool_name)
+            if not tool_function:
+                logger.warning(f"[Executor] Step {step_num}: Unknown tool '{tool_name}' found in plan.")
+                self._add_thinking_step(f"Error: Unknown tool '{tool_name}' specified in plan...")
+                results[f"Error_Step{step_num}_{tool_name}"] = f"Unknown tool '{tool_name}' specified in plan step {step_num}."
+                continue # Skip to next step
+
             try:
-                # Parse tool name and parameters
-                tool_match = re.search(r'(\w+)\((.*)\)', step)
-                if not tool_match:
-                    logger.warning(f"[Executor] Step {step_num}: Could not parse tool call from: {step}")
-                    self._add_thinking_step(f"Could not understand tool call in step {step_num}")
-                    results[f"Error_Step{step_num}"] = "Invalid tool call format"
-                    print("Status: Failed - Invalid tool format")
-                    
-                    # Ask user what to do
-                    action = input("\nHow would you like to proceed?\n1. Skip this step\n2. Retry with modified command\n3. Abort execution\nYour choice: ")
-                    if action == "1":
-                        continue
-                    elif action == "2":
-                        modified_step = input("Enter modified command: ")
-                        tool_match = re.search(r'(\w+)\((.*)\)', modified_step)
-                        if not tool_match:
-                            print("Still invalid format. Skipping step.")
-                            continue
-                    else:
-                        print("Aborting execution.")
-                        return results
-                    
-                tool_name = tool_match.group(1)
-                tool_args_str = tool_match.group(2)
+                # Prepare arguments using introspection
+                kwargs = {"query": tool_input} # Default
+                # Adjust primary input key if needed (e.g., DirectAnswer)
+                # if tool_name == "DirectAnswer": kwargs = {"instruction": tool_input}
+
+                sig = inspect.signature(tool_function)
+                tool_params = sig.parameters
                 
-                # Validate tool exists
-                if tool_name not in self.tools_map:
-                    logger.warning(f"[Executor] Step {step_num}: Unknown tool: {tool_name}")
-                    self._add_thinking_step(f"Unknown tool '{tool_name}' in step {step_num}")
-                    results[f"Error_Step{step_num}"] = f"Unknown tool: {tool_name}"
-                    print(f"Status: Failed - Unknown tool '{tool_name}'")
-                    continue
+                if "llm" in tool_params: kwargs["llm"] = self.llm
+                if "db_path" in tool_params:
+                    db_key = "ccr" # Default assumption
+                    if tool_name == "FinancialSQL": db_key = "financial"
+                    kwargs["db_path"] = self.db_paths.get(db_key)
                 
-                print(f"Status: Executing {tool_name}...")
-                
+                # For emergency stop
                 try:
-                    # Parse arguments
-                    tool_args = eval(f"dict({tool_args_str})")
+                    logger.info(f"[Executor] Step {step_num}: Calling tool '{tool_name}' with input: '{tool_input[:100]}...'")
+                    # Actually execute the tool function with appropriate kwargs
+                    tool_result = tool_function(**kwargs)
+                    logger.info(f"[Executor] Step {step_num}: Tool '{tool_name}' executed successfully.")
                     
-                    # Execute tool
-                    start_time = time.time()
-                    result = self.tools_map[tool_name](**tool_args)
-                    execution_time = time.time() - start_time
-                    
-                    # Store result
-                    results[f"Step{step_num}_{tool_name}"] = result
-                    self._add_thinking_step(f"Completed {tool_name} in step {step_num}")
-                    
-                    # Show intermediate result
-                    print(f"Status: Completed in {execution_time:.2f}s")
-                    print("\nIntermediate Result:")
-                    print("-----------------")
-                    if isinstance(result, str):
-                        print(textwrap.shorten(result, width=100))
+                    # Add result thinking step
+                    if isinstance(tool_result, dict):
+                        if tool_result.get("error"):
+                            self._add_thinking_step(f"Tool execution failed: {tool_result.get('error')[:50]}...")
+                        elif "sql_result" in tool_result:
+                            result_preview = str(tool_result["sql_result"])[:30].replace("\n", " ")
+                            self._add_thinking_step(f"Database returned results: '{result_preview}...'")
+                        else:
+                            self._add_thinking_step(f"Tool execution completed successfully...")
                     else:
-                        print(f"Result type: {type(result)}")
-                    print("-----------------")
+                        self._add_thinking_step(f"Tool returned result: '{str(tool_result)[:30]}...'")
                     
-                    # Ask if user wants to see full result
-                    if input("\nWould you like to see the full result? (y/n): ").lower().startswith('y'):
-                        print("\nFull Result:")
-                        print(result)
+                    # Create a unique key for this tool call
+                    if tool_name not in tool_usage_counters:
+                        tool_usage_counters[tool_name] = 1
+                    else:
+                        tool_usage_counters[tool_name] += 1
+                    unique_key = f"{tool_name}_{tool_usage_counters[tool_name]}"
+                    
+                    # Store with unique key
+                    results[unique_key] = tool_result
                     
                 except KeyboardInterrupt:
                     logger.warning(f"[Executor] Step {step_num}: Tool execution interrupted by user.")
                     self._add_thinking_step("Tool execution interrupted by user...")
                     results[f"Error_Step{step_num}_{tool_name}"] = "Tool execution interrupted by user."
-                    print("\nStatus: Interrupted by user")
-                    
-                    # Ask user what to do
-                    action = input("\nHow would you like to proceed?\n1. Skip to next step\n2. Retry this step\n3. Abort execution\nYour choice: ")
-                    if action == "1":
-                        continue
-                    elif action == "2":
-                        step_num -= 1  # Retry current step
-                        continue
-                    else:
-                        print("Aborting execution.")
-                        break
+                    break # Exit the loop early
                     
             except Exception as e:
                 logger.error(f"[Executor] Step {step_num}: Error executing tool '{tool_name}': {e}", exc_info=True)
                 self._add_thinking_step(f"Error during tool execution: {str(e)[:50]}...")
                 results[f"Error_Step{step_num}_{tool_name}"] = f"Error executing tool: {str(e)}"
-                print(f"\nStatus: Failed - {str(e)}")
-                
-                # Ask user what to do
-                action = input("\nHow would you like to proceed?\n1. Skip to next step\n2. Retry this step\n3. Abort execution\nYour choice: ")
-                if action == "1":
-                    continue
-                elif action == "2":
-                    step_num -= 1  # Retry current step
-                    continue
-                else:
-                    print("Aborting execution.")
-                    break
+                continue # Try to continue with other steps
         
-        print("\nExecution completed!")
+        logger.info(f"[Executor] Plan execution completed with {len(results)} results.")
         return results
 
     def _format_sql_results(self, results_str: str, max_rows=10) -> str:
@@ -607,64 +552,6 @@ Based *only* on the provided Tool Execution Results Context, formulate a concise
             logger.error(f"[Synthesizer] Error during answer synthesis: {e}", exc_info=True)
             return f"Error synthesizing answer: {str(e)}"
 
-    def _detect_followup_llm(self, query: str) -> Tuple[bool, str]:
-        """Use LLM to detect if a query is a follow-up question and enhance it with context if needed."""
-        if not self.memory:
-            return False, query
-
-        # Get recent conversation history
-        recent_context = self.memory[-2:] if len(self.memory) > 1 else self.memory[-1:]
-        context_str = "\n".join([f"Previous Query: {q}\nResponse: {r}\n" for q, r in recent_context])
-
-        system_prompt = """You are an expert at analyzing conversation context and detecting follow-up questions.
-Your task is to:
-1. Determine if the current query is a follow-up to previous conversation
-2. If it is a follow-up, enhance it with necessary context
-3. If it's not a follow-up, leave it unchanged
-
-A query is a follow-up if it:
-- References information from previous messages
-- Uses pronouns (it, they, that, etc.) that refer to previous content
-- Asks for clarification or more details about previous topics
-- Compares with or builds upon previous information
-- Would be unclear without the context of previous messages
-
-Respond in JSON format:
-{
-    "is_followup": true/false,
-    "enhanced_query": "original or enhanced query with context",
-    "explanation": "brief explanation of why this is or isn't a follow-up"
-}"""
-
-        human_prompt = f"""Current Query: "{query}"
-
-Recent Conversation Context:
-{context_str}
-
-Determine if this is a follow-up question and enhance it with context if needed."""
-
-        try:
-            messages = [
-                SystemMessage(content=system_prompt),
-                HumanMessage(content=human_prompt)
-            ]
-            response = self.llm.invoke(messages)
-            result = json.loads(response.content.strip())
-
-            is_followup = result.get("is_followup", False)
-            enhanced_query = result.get("enhanced_query", query)
-            explanation = result.get("explanation", "")
-
-            if is_followup:
-                logger.info(f"[Follow-up Detector] Follow-up detected: {explanation}")
-                self._add_thinking_step(f"Detected follow-up question: {explanation[:100]}...")
-            
-            return is_followup, enhanced_query
-
-        except Exception as e:
-            logger.error(f"[Follow-up Detector] Error during LLM follow-up detection: {e}", exc_info=True)
-            return False, query
-
     def run(self, query: str) -> str:
         """Runs the Guardrail -> Plan -> [Confirm] -> Execute -> Synthesize flow."""
         logger.info(f'--- Running query: "{query}" ---')
@@ -672,13 +559,10 @@ Determine if this is a follow-up question and enhance it with context if needed.
         # Clear previous thinking steps
         self.thinking_steps = []
         
-        # --- Check for follow-up questions using LLM ---
-        is_followup, contextual_query = self._detect_followup_llm(query)
-        
         # --- 0. Guardrail Check ---
         logger.info("--- Step 0: Guardrail Check ---")
         self._add_thinking_step("Validating query against safety and capability guardrails...")
-        guardrail_result = self._guardrail_check(contextual_query if is_followup else query)
+        guardrail_result = self._guardrail_check(query)
         
         if not guardrail_result["pass"]:
             # Query rejected by guardrail
@@ -690,10 +574,23 @@ Determine if this is a follow-up question and enhance it with context if needed.
             return f"{thinking_output}\n\nI'm unable to process this query: {guardrail_result['message']}"
         
         # Update query if it was modified by the guardrail
-        if guardrail_result["query"] != (contextual_query if is_followup else query):
+        if guardrail_result["query"] != query:
             logger.info(f"Query modified by guardrail: '{query}' -> '{guardrail_result['query']}'")
             self._add_thinking_step(f"Clarifying query to: '{guardrail_result['query']}'")
             query = guardrail_result["query"]
+        
+        # --- Check for follow-up questions ---
+        contextual_query = query
+        is_followup = False
+        followup_indicators = ["what about", "tell me more", "and what", "how about", "what is", "can you explain"]
+        
+        if self.memory and any(query.lower().startswith(indicator) for indicator in followup_indicators):
+            # It's likely a follow-up question, add context from the most recent interaction
+            prev_query, prev_response = self.memory[-1]
+            contextual_query = f"{query} (Context from previous query: '{prev_query}')"
+            logger.info(f"Follow-up detected. Enhanced query: {contextual_query}")
+            self._add_thinking_step(f"Recognizing follow-up question related to previous query...")
+            is_followup = True
         
         # --- 1. Generate Plan --- 
         logger.info("--- Step 1: Generating Plan ---")

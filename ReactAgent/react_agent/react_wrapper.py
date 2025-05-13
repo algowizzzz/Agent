@@ -11,7 +11,6 @@ import os
 import re
 import json
 import logging
-import time
 from typing import List, Dict, Any, Tuple, Optional
 
 # Setup logging
@@ -45,66 +44,7 @@ class ReactAgentWrapper:
         self.api_key = api_key
         self.max_iterations = max_iterations
         self.conversation_history = []
-        self.feedback_history = []  # Store user feedback
     
-    def _collect_feedback(self, query: str, response: str) -> dict:
-        """Collect structured feedback from the user about the response."""
-        print("\nWould you like to provide feedback on this response?")
-        if input("(y/n): ").lower().startswith('y'):
-            feedback = {
-                "query": query,
-                "response": response,
-                "timestamp": time.time(),
-                "ratings": {},
-                "comments": ""
-            }
-            
-            # Collect ratings
-            print("\nPlease rate the following aspects (1-5, 5 being best):")
-            aspects = [
-                "relevance",
-                "accuracy",
-                "clarity",
-                "completeness"
-            ]
-            
-            for aspect in aspects:
-                while True:
-                    try:
-                        rating = int(input(f"{aspect.capitalize()}: "))
-                        if 1 <= rating <= 5:
-                            feedback["ratings"][aspect] = rating
-                            break
-                        print("Please enter a number between 1 and 5")
-                    except ValueError:
-                        print("Please enter a valid number")
-            
-            # Collect comments
-            print("\nWould you like to add any specific comments?")
-            if input("(y/n): ").lower().startswith('y'):
-                feedback["comments"] = input("Comments: ").strip()
-            
-            # Store feedback
-            self.feedback_history.append(feedback)
-            
-            # Adapt to feedback immediately if needed
-            self._adapt_to_feedback(feedback)
-            
-            return feedback
-        return None
-        
-    def _adapt_to_feedback(self, feedback: dict):
-        """Adapt the agent's behavior based on feedback."""
-        # If response got low ratings, add this context to future prompts
-        avg_rating = sum(feedback["ratings"].values()) / len(feedback["ratings"])
-        if avg_rating < 3:
-            adaptation_prompt = {
-                "role": "system",
-                "content": f"Previous similar query '{feedback['query']}' received low ratings. "
-                          f"Specific issues: {feedback['comments']}. Please improve on these aspects."
-            }
-            self.conversation_history.append(adaptation_prompt)
-            
     def run(self, query: str) -> str:
         """
         Run the ReAct agent on a user query.
@@ -145,24 +85,9 @@ class ReactAgentWrapper:
             if "Final Answer:" in response_text:
                 final_answer = response_text.split("Final Answer:")[1].strip()
                 
-                # Collect feedback
-                feedback = self._collect_feedback(query, final_answer)
-                
                 # Update conversation history
                 self.conversation_history.append({"role": "user", "content": query})
                 self.conversation_history.append({"role": "assistant", "content": final_answer})
-                
-                # If feedback indicates issues, try to improve
-                if feedback and sum(feedback["ratings"].values()) / len(feedback["ratings"]) < 3:
-                    print("\nWould you like me to try to improve the answer based on your feedback?")
-                    if input("(y/n): ").lower().startswith('y'):
-                        # Add feedback context and retry
-                        messages.append({
-                            "role": "system",
-                            "content": f"The previous answer received feedback: {feedback['comments']}. "
-                                     f"Please provide an improved answer addressing these concerns."
-                        })
-                        continue
                 
                 logger.info(f"[ReAct] Found final answer after {i+1} iterations")
                 return final_answer
@@ -321,27 +246,3 @@ Begin working on: {query}
         # For now, let's just indicate it was handled conversationally.
         # A more sophisticated approach might involve invoking the LLM or using DirectAnswer logic.
         return f"Handled conversationally: '{query}'"
-
-    def get_feedback_summary(self) -> dict:
-        """Get a summary of collected feedback."""
-        if not self.feedback_history:
-            return {"message": "No feedback collected yet"}
-            
-        summary = {
-            "total_feedback": len(self.feedback_history),
-            "average_ratings": {},
-            "common_issues": set()
-        }
-        
-        # Calculate average ratings
-        for aspect in ["relevance", "accuracy", "clarity", "completeness"]:
-            ratings = [f["ratings"].get(aspect, 0) for f in self.feedback_history]
-            if ratings:
-                summary["average_ratings"][aspect] = sum(ratings) / len(ratings)
-        
-        # Extract common issues from comments
-        for feedback in self.feedback_history:
-            if feedback["comments"]:
-                summary["common_issues"].add(feedback["comments"])
-        
-        return summary
