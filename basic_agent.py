@@ -96,28 +96,106 @@ class BasicAgent:
 
     def _add_thinking_step(self, step: str) -> None:
         """Add a simplified thinking step to track agent reasoning."""
-
-    def _format_conversation_history(self, max_turns=3):
-        """Format recent conversation history for inclusion in prompts."""
-        if not self.memory:
-            return ""
-            
-        # Get last few turns, limited by max_turns
-        recent_memory = self.memory[-max_turns:]
-        
-        formatted_history = "Recent conversation history:\n"
-        for i, (user_query, assistant_response) in enumerate(recent_memory):
-            # Truncate very long responses
-            if len(assistant_response) > 500:
-                assistant_response = assistant_response[:500] + "..."
-                
-            formatted_history += f"User {i+1}: {user_query}\n"
-            formatted_history += f"Assistant {i+1}: {assistant_response}\n\n"
-            
-        return formatted_history
-        
         logger.info(f"[Thinking] {step}")
         self.thinking_steps.append(step)
+
+    def _format_conversation_history(self, max_turns=3):
+        """Format recent conversation history for context."""
+        if not self.memory or len(self.memory) == 0:
+            return "No previous conversation."
+        
+        # Get up to max_turns most recent turns
+        recent_history = self.memory[-max_turns:] if len(self.memory) > max_turns else self.memory
+        
+        # Format as conversation
+        formatted_history = ""
+        for idx, (query, response) in enumerate(recent_history):
+            formatted_history += f"User Query {idx+1}: {query}\n"
+            # Truncate very long responses
+            if len(response) > 250:
+                response = response[:250] + "... [truncated]"
+            formatted_history += f"Assistant Response {idx+1}: {response}\n\n"
+            
+        return formatted_history
+    
+    def _is_followup_question(self, query: str) -> tuple[bool, str]:
+        """
+        Use the LLM to determine if the current query is a follow-up to previous conversation.
+        
+        Args:
+            query: The current user query
+            
+        Returns:
+            Tuple of (is_followup, enhanced_query)
+            - is_followup: Boolean indicating if this is a follow-up question
+            - enhanced_query: Original query with context added if it's a follow-up
+        """
+        # If no conversation history, it can't be a follow-up
+        if not self.memory or len(self.memory) == 0:
+            return False, query
+            
+        # Get the most recent conversation turn
+        prev_query, prev_response = self.memory[-1]
+        
+        system_prompt = """You are an expert at analyzing conversational context. 
+Your task is to determine if a new user query is a follow-up question related to the previous conversation.
+
+A follow-up question typically:
+1. References entities or topics from previous messages without fully specifying them
+2. Uses pronouns or demonstratives that refer to previously mentioned items
+3. Asks for elaboration, clarification, or additional information about previously discussed topics
+4. Makes implicit references to the conversation history
+
+Analyze the conversation history and new query, then respond in JSON format ONLY:
+{
+  "is_followup": true|false,
+  "explanation": "Brief explanation of your decision",
+  "enhanced_query": "If this is a follow-up, provide an enhanced version of the query that includes relevant context"
+}
+
+If it's not a follow-up, set "enhanced_query" to be the original query.
+If it is a follow-up, the enhanced query should include explicit references to make it understandable without conversation history.
+"""
+        
+        # Format the recent conversation history
+        conversation_context = self._format_conversation_history(max_turns=2)
+        
+        human_prompt = f"""Conversation history:
+{conversation_context}
+
+New user query: "{query}"
+
+Is this a follow-up question?"""
+        
+        try:
+            messages = [
+                SystemMessage(content=system_prompt),
+                HumanMessage(content=human_prompt)
+            ]
+            response = self.llm.invoke(messages)
+            
+            # Parse the response
+            try:
+                result = json.loads(response.content.strip())
+                is_followup = result.get("is_followup", False)
+                enhanced_query = result.get("enhanced_query", query)
+                
+                if is_followup:
+                    logger.info(f"LLM determined this is a follow-up question. Enhanced query: {enhanced_query}")
+                    return True, enhanced_query
+                else:
+                    logger.info(f"LLM determined this is not a follow-up question")
+                    return False, query
+                    
+            except json.JSONDecodeError:
+                logger.error(f"Failed to parse follow-up detection response: {response.content[:100]}...")
+                # Default to not a follow-up if we can't parse the response
+                return False, query
+                
+        except Exception as e:
+            logger.error(f"Error during follow-up detection: {e}", exc_info=True)
+            # Default to not a follow-up on error
+            return False, query
 
     def _guardrail_check(self, query: str) -> Dict[str, Any]:
         """
@@ -582,18 +660,14 @@ Based *only* on the provided Tool Execution Results Context, formulate a concise
         # Clear previous thinking steps
         self.thinking_steps = []
         
-        # --- Check for follow-up questions ---
-        contextual_query = query
-        is_followup = False
-        followup_indicators = ["what about", "tell me more", "and what", "how about", "what is", "can you explain"]
+        # --- Check for follow-up questions using LLM ---
+        is_followup, contextual_query = self._is_followup_question(query)
         
-        if self.memory and any(query.lower().startswith(indicator) for indicator in followup_indicators):
-            # It's likely a follow-up question, add context from the most recent interaction
-            prev_query, prev_response = self.memory[-1]
-            contextual_query = f"{query} (Context from previous query: '{prev_query}')"
+        if is_followup:
+            self._add_thinking_step(f"Recognized follow-up question, adding context from previous conversation...")
             logger.info(f"Follow-up detected. Enhanced query: {contextual_query}")
-            self._add_thinking_step(f"Recognizing follow-up question related to previous query...")
-            is_followup = True
+        else:
+            contextual_query = query
         
         # --- 0. Guardrail Check ---
         logger.info("--- Step 0: Guardrail Check ---")
@@ -615,9 +689,6 @@ Based *only* on the provided Tool Execution Results Context, formulate a concise
             logger.info(f"Query modified by guardrail: '{contextual_query}' -> '{guardrail_result['query']}'")
             self._add_thinking_step(f"Clarifying query to: '{guardrail_result['query']}'")
             contextual_query = guardrail_result["query"]
-            # Also update the original query if not a follow-up
-            if not is_followup:
-                query = guardrail_result["query"]
         
         # --- 1. Generate Plan --- 
         logger.info("--- Step 1: Generating Plan ---")

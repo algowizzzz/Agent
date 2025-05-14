@@ -183,7 +183,7 @@ Examples:
                         controls_list += f"Owner: {c.get('owner', 'Not specified')}\n"
                         controls_list += f"Status: {c.get('status', 'Not specified')}\n\n"
                     results.append(("CONTROLS IN PRC LIBRARY", controls_list))
-            else:
+                else:
                     results.append(("CONTROLS IN PRC LIBRARY", "No controls found in the PRC library."))
         
         # Step 2: Handle analysis if needed
@@ -293,7 +293,7 @@ Examples:
             
     except Exception as e:
         logger.error(f"[Control Analysis] Error during analysis: {str(e)}")
-        return f"Error: Control analysis failed: {str(e)}"
+        return f"Error: Control analysis failed: {str(e)}" 
 
 def load_controls_data(controls_path: Optional[str] = None) -> Union[List[Dict[str, Any]], str]:
     """Load controls data from JSON file."""
@@ -327,203 +327,63 @@ def load_controls_data(controls_path: Optional[str] = None) -> Union[List[Dict[s
 def simple_control_analysis(query: str, controls_data: List[Dict[str, Any]], llm: BaseChatModel, api_key: Optional[str] = None) -> str:
     """Simplified control analysis when orchestration fails."""
     
-    # Create a prompt to understand what the user wants
-    prompt = f"""Analyze this user query about controls and help determine how to respond:
-
-USER QUERY: {query}
-
-Available controls:
-{json.dumps(controls_data, indent=2)}
-
-What is the user asking for? Select ONE of these options:
-1. Information about existing controls or listing controls
-2. Analyzing a control using 5Ws framework
-3. Generating a test script for operational effectiveness
-4. Evaluating design effectiveness
-5. Multiple analyses on a specific control
-6. Something else (specify)
-
-Return your answer as a single number (1-6).
-"""
-    response = llm.invoke(prompt)
-    option = response.content.strip()
-    
-    # Try to extract just the number
-    option_num = ''.join(char for char in option if char.isdigit())
-    if option_num:
-        option = option_num[0] if option_num else "6"
-    
-    if option == "1":
-        # Show control info
-        return fetch_controls_info(query, llm, None)
-    elif option == "2":
-        # Do 5Ws analysis
-        result = analyze_control_5ws(query, None, llm, api_key)
-        if result.get("error"):
-            return f"Error in 5Ws analysis: {result['error']}"
-        else:
-            return f"## 5Ws ANALYSIS\n\n{format_5ws_analysis(result.get('analysis', {}))}"
-    elif option == "3":
-        # Generate test script
-        result = generate_operational_effectiveness_script(query, None, llm, api_key)
-        if result.get("error"):
-            return f"Error generating test script: {result['error']}"
-        else:
-            return f"## OPERATIONAL EFFECTIVENESS TEST SCRIPT\n\n{format_test_script(result.get('test_script', {}))}"
-    elif option == "4":
-        # Evaluate design
-        result = evaluate_design_effectiveness(query, None, llm, api_key)
-        if result.get("error"):
-            return f"Error evaluating design: {result['error']}"
-        else:
-            return f"## DESIGN EFFECTIVENESS EVALUATION\n\n{format_design_evaluation(result.get('assessment', {}))}"
-    elif option == "5":
-        # Do all analyses
-        result_5ws = analyze_control_5ws(query, None, llm, api_key)
-        result_oe = generate_operational_effectiveness_script(query, None, llm, api_key)
-        result_de = evaluate_design_effectiveness(query, None, llm, api_key)
-        
-        combined = "## 5Ws ANALYSIS\n\n"
-        combined += format_5ws_analysis(result_5ws.get("analysis", {})) if not result_5ws.get("error") else f"Error: {result_5ws.get('error')}"
-        combined += "\n\n## OPERATIONAL EFFECTIVENESS TEST SCRIPT\n\n"
-        combined += format_test_script(result_oe.get("test_script", {})) if not result_oe.get("error") else f"Error: {result_oe.get('error')}"
-        combined += "\n\n## DESIGN EFFECTIVENESS EVALUATION\n\n"
-        combined += format_design_evaluation(result_de.get("assessment", {})) if not result_de.get("error") else f"Error: {result_de.get('error')}"
-        
-        return combined
-    else:
-        # Just use fetch_controls_info as a fallback
-        return fetch_controls_info(query, llm, None)
-
-def fetch_control(control_id: str, controls_path: Optional[str] = None) -> Dict[str, Any]:
-    """Fetch a specific control by ID.
-    
-    Args:
-        control_id: The ID of the control to fetch
-        controls_path: Optional path to the controls.json file
-        
-    Returns:
-        Dict containing control details
-        
-    Raises:
-        ControlNotFoundException: If control with specified ID is not found
-    """
-    logger.info(f"[Control Analysis] Fetching control with ID: {control_id}")
-    
-    # Use default path if not provided
-    if controls_path is None:
-        controls_path = DEFAULT_CONTROLS_PATH
-    
     try:
-        # Check if file exists
-        if not os.path.exists(controls_path):
-            raise ControlNotFoundException(f"Controls file not found at {controls_path}")
-        
-        # Read and parse JSON file
-        with open(controls_path, 'r') as f:
-            controls_data = json.load(f)
-            
-        # Extract controls array
-        controls = controls_data.get("controls", [])
-        
-        # Find control with matching ID
-        for control in controls:
-            if control.get("id") == control_id:
-                logger.info(f"[Control Analysis] Found control: {control.get('name', 'Unnamed')}")
-                return control
+        # Check if the query is asking for a list of controls
+        if any(keyword in query.lower() for keyword in ["list", "show", "get", "all"]):
+            if any(keyword in query.lower() for keyword in ["controls", "control"]):
+                # Return a list of all controls
+                if not controls_data:
+                    return "No controls found in the library."
+                    
+                controls_list = "# Available Controls\n\n"
+                for control in controls_data:
+                    controls_list += f"- **{control.get('id', 'Unknown')}**: {control.get('name', 'Unnamed control')}\n"
                 
-        # If we get here, control was not found
-        raise ControlNotFoundException(f"Control with ID {control_id} not found in controls file")
+                return controls_list
         
-    except json.JSONDecodeError:
-        raise ControlNotFoundException(f"Invalid JSON format in controls file at {controls_path}")
-    except Exception as e:
-        if isinstance(e, ControlNotFoundException):
-            raise
-        raise ControlNotFoundException(f"Error fetching control: {str(e)}")
-
-def fetch_controls_info(query: str, llm: BaseChatModel, controls_path: Optional[str] = None) -> str:
-    """
-    Loads all controls and has the LLM answer questions about them.
-    
-    Args:
-        query: The user's query about controls
-        llm: LLM to use for answering
-        controls_path: Optional path to the controls.json file
+        # Check if it's asking about a specific control ID
+        match = re.search(r'CTRL-\d{3}', query)
+        if match:
+            control_id = match.group(0)
+            # Find the specific control
+            control = None
+            for c in controls_data:
+                if c.get("id") == control_id:
+                    control = c
+                    break
+                    
+            if control:
+                return format_control_details(control)
+            else:
+                return f"Control {control_id} not found in the library."
         
-    Returns:
-        String with the answer about controls
-    """
-    logger.info(f"[Control Analysis] Processing controls info query: {query}")
-    
-    # Use default path if not provided
-    if controls_path is None:
-        controls_path = DEFAULT_CONTROLS_PATH
-    
-    try:
-        # Check if file exists
-        if not os.path.exists(controls_path):
-            return f"Error: Controls file not found at {controls_path}"
+        # Default: assume it's asking for a 5W analysis of a control described in the query
+        logger.info("[Control Analysis] Performing 5Ws analysis in simple mode")
+        result = analyze_control_5ws(query, None, llm, api_key)
         
-        # Read and parse JSON file
-        with open(controls_path, 'r') as f:
-            controls_data = json.load(f)
+        if result.get("error"):
+            return f"Error during 5Ws analysis: {result['error']}"
             
-        # Extract controls array
-        controls = controls_data.get("controls", [])
+        return format_5ws_analysis(result.get("analysis", {}))
         
-        if not controls:
-            return "No controls found in the controls file."
-        
-        # Format the controls data for the prompt
-        controls_info = json.dumps(controls, indent=2)
-        
-        # Create a prompt for the LLM to answer questions about the controls
-        prompt = f"""You are helping answer questions about control information from a controls repository.
-Here is the available control data:
-
-{controls_info}
-
-User question: {query}
-
-Please answer the question accurately based on the control data provided above. Be conversational and helpful.
-
-You can answer questions about any aspect of the controls including:
-- IDs and names of controls
-- Descriptions
-- Types (Preventative, Detective, etc.)
-- Categories
-- Owners
-- Status
-- Comparisons between controls
-- Filtering controls by any attribute
-- Counting controls meeting certain criteria
-- Listing all controls or specific controls
-- Finding controls with specific characteristics
-
-If the user asks for controls of a certain type, with a specific owner, or meeting any other criteria, provide all matching controls.
-If the answer can be presented in a structured way, do so to improve readability.
-"""
-        
-        # Get LLM response
-        response = llm.invoke(prompt)
-        
-        if hasattr(response, 'content'):
-            return response.content.strip()
-        else:
-            return str(response).strip()
-            
-    except json.JSONDecodeError:
-        return f"Error: Invalid JSON format in controls file at {controls_path}"
     except Exception as e:
-        logger.error(f"[Control Analysis] Error fetching controls info: {str(e)}")
-        return f"Error retrieving control information: {str(e)}"
+        logger.error(f"[Control Analysis] Error in simple mode: {str(e)}")
+        return f"Error during control analysis: {str(e)}"
 
 def analyze_control_5ws(control_description: str, control_data: Optional[Dict[str, Any]], 
                       llm: Optional[BaseChatModel], api_key: Optional[str]) -> Dict[str, Any]:
-    """Analyze a control description using the 5Ws framework"""
-    logger.info(f"[Control Analysis] Running 5Ws analysis on control description")
+    """
+    Performs 5W analysis (Who, What, When, Where, Why) on the provided control description.
     
+    Args:
+        control_description: Description of the control to analyze
+        control_data: Optional control metadata
+        llm: Language model instance to use
+        api_key: API key for creating a new LLM if not provided
+        
+    Returns:
+        Dictionary with the analysis results or error
+    """
     try:
         # Create LLM if not provided
         if llm is None:
@@ -531,88 +391,234 @@ def analyze_control_5ws(control_description: str, control_data: Optional[Dict[st
                 if api_key is None:
                     api_key = os.getenv("ANTHROPIC_API_KEY")
                     if not api_key:
-                        return {"error": "API key not provided and not found in environment", "analysis": None}
+                        return {"error": "API key not provided and not found in environment"}
                 
                 llm = ChatAnthropic(
                     model="claude-3-5-sonnet-20240620", 
                     temperature=0.1,
                     anthropic_api_key=api_key
                 )
-                logger.info("[Control Analysis] Created new LLM instance for 5Ws analysis")
             except Exception as e:
-                error_msg = f"[Control Analysis] Failed to create LLM for 5Ws analysis: {str(e)}"
+                error_msg = f"Failed to create LLM: {str(e)}"
                 logger.error(error_msg)
-                return {"error": error_msg, "analysis": None}
+                return {"error": error_msg}
         
-        # Construct the prompt for 5Ws analysis
-        prompt = f"""Analyze the following control description using the 5Ws framework (Who, What, When, Where, Why).
-For each dimension, identify any gaps or missing information and suggest improvements.
+        # Prepare prompt
+        prompt = f"""You are an expert in control analysis using the 5Ws framework. 
+Please analyze the following control description:
 
-CONTROL DESCRIPTION:
-{control_description}
+CONTROL: {control_description}
 
-Provide your analysis in the following JSON format:
+Apply the 5Ws framework systematically:
+1. WHO: Which roles/people are involved in executing or supervising this control?
+2. WHAT: What specific actions are performed as part of this control?
+3. WHEN: When is this control performed (frequency, timing, triggers)?
+4. WHERE: Where is this control applied (systems, locations, environments)?
+5. WHY: Why is this control important (risks addressed, objectives protected)?
+
+For each W, provide:
+- Analysis: Detailed findings based on the control description
+- Gap: Identify any missing information or potential weaknesses
+- Improvement: Recommend how to address each gap
+
+Format your analysis as a detailed structured JSON:
 {{
   "who": {{
-    "analysis": "Your analysis of who is responsible...",
-    "gap": "Identified gap in the who aspect, or null if none",
-    "improvement": "Suggested improvement for the who aspect, or null if none"
+    "analysis": "string",
+    "gap": "string",
+    "improvement": "string"
   }},
   "what": {{
-    "analysis": "Your analysis of what the control does...",
-    "gap": "Identified gap in the what aspect, or null if none",
-    "improvement": "Suggested improvement for the what aspect, or null if none"
+    "analysis": "string", 
+    "gap": "string",
+    "improvement": "string"
   }},
   "when": {{
-    "analysis": "Your analysis of when the control is executed...",
-    "gap": "Identified gap in the when aspect, or null if none",
-    "improvement": "Suggested improvement for the when aspect, or null if none"
+    "analysis": "string",
+    "gap": "string",
+    "improvement": "string"
   }},
   "where": {{
-    "analysis": "Your analysis of where the control operates...",
-    "gap": "Identified gap in the where aspect, or null if none", 
-    "improvement": "Suggested improvement for the where aspect, or null if none"
+    "analysis": "string",
+    "gap": "string",
+    "improvement": "string"
   }},
   "why": {{
-    "analysis": "Your analysis of why the control exists...",
-    "gap": "Identified gap in the why aspect, or null if none",
-    "improvement": "Suggested improvement for the why aspect, or null if none"
-  }},
-  "overall_assessment": "Summary assessment of the control's overall effectiveness and completeness",
-  "priority_improvements": ["List of 1-3 highest priority improvements"]
+    "analysis": "string",
+    "gap": "string",
+    "improvement": "string"
+  }}
 }}
 
-Ensure all gaps and improvements are specific, actionable, and directly related to the control description."""
-
-        # Get the LLM response
+Provide a complete, thorough analysis for each of the 5Ws. For elements not explicitly mentioned in the control description, identify this as a gap and suggest an appropriate improvement.
+"""
+        
+        # Get response
         response = llm.invoke(prompt)
         
-        # Extract the JSON response
-        if hasattr(response, 'content'):
-            raw_content = response.content.strip() if isinstance(response.content, str) else str(response.content).strip()
+        # Extract JSON
+        result_text = response.content.strip()
+        
+        # Try different methods to extract JSON
+        if "```json" in result_text:
+            json_str = result_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in result_text:
+            json_str = result_text.split("```")[1].strip()
         else:
-            raw_content = str(response).strip()
-            
-        # Extract JSON part
-        if "```json" in raw_content:
-            json_str = raw_content.split("```json")[1].split("```")[0].strip()
-        elif "```" in raw_content:
-            json_str = raw_content.split("```")[1].strip()
-        else:
-            json_str = raw_content
-            
-        try:
-            analysis = json.loads(json_str)
-            return {"error": None, "analysis": analysis}
-        except json.JSONDecodeError:
-            error_msg = f"Error parsing LLM response: Invalid JSON format"
-            logger.error(error_msg)
-            return {"error": error_msg, "analysis": None}
-            
+            # Try to find JSON object by looking for first { and last }
+            start_idx = result_text.find('{')
+            end_idx = result_text.rfind('}')
+            if start_idx >= 0 and end_idx > start_idx:
+                json_str = result_text[start_idx:end_idx+1]
+            else:
+                json_str = result_text
+        
+        # Parse the JSON
+        analysis = json.loads(json_str)
+        
+        return {"analysis": analysis}
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"[Control Analysis] Error parsing 5Ws analysis JSON: {str(e)}")
+        return {"error": f"Error parsing 5Ws analysis: {str(e)}"}
     except Exception as e:
-        error_msg = f"Error during 5Ws analysis: {str(e)}"
-        logger.error(error_msg)
-        return {"error": error_msg, "analysis": None}
+        logger.error(f"[Control Analysis] Error during 5Ws analysis: {str(e)}")
+        return {"error": f"Error during 5Ws analysis: {str(e)}"}
+
+def format_control_details(control_data: Dict[str, Any]) -> str:
+    """Format control details into a readable string."""
+    if not control_data:
+        return "No control data provided."
+    
+    # Basic details
+    formatted = f"# Control: {control_data.get('id', 'Unknown ID')}\n\n"
+    formatted += f"**Name**: {control_data.get('name', 'Unnamed control')}\n"
+    formatted += f"**Type**: {control_data.get('type', 'Not specified')}\n"
+    formatted += f"**Category**: {control_data.get('category', 'Not specified')}\n"
+    formatted += f"**Owner**: {control_data.get('owner', 'Not specified')}\n"
+    formatted += f"**Status**: {control_data.get('status', 'Not specified')}\n\n"
+    
+    # Description
+    if control_data.get('description'):
+        formatted += f"## Description\n\n{control_data.get('description')}\n\n"
+    
+    # Objectives
+    if control_data.get('objectives'):
+        formatted += f"## Objectives\n\n"
+        objectives = control_data.get('objectives')
+        if isinstance(objectives, list):
+            for obj in objectives:
+                formatted += f"- {obj}\n"
+        else:
+            formatted += str(objectives)
+        formatted += "\n\n"
+    
+    # Risks addressed
+    if control_data.get('risks'):
+        formatted += f"## Risks Addressed\n\n"
+        risks = control_data.get('risks')
+        if isinstance(risks, list):
+            for risk in risks:
+                formatted += f"- {risk}\n"
+        else:
+            formatted += str(risks)
+        formatted += "\n\n"
+    
+    return formatted.strip()
+
+def format_5ws_analysis(analysis: Dict[str, Any]) -> str:
+    """Format 5Ws analysis results into a readable string."""
+    if not analysis:
+        return "No analysis results provided."
+    
+    formatted = "## 5Ws ANALYSIS\n\n"
+    
+    for w in ["who", "what", "when", "where", "why"]:
+        w_data = analysis.get(w, {})
+        formatted += f"### {w.upper()}\n"
+        
+        if w_data.get('analysis'):
+            formatted += f"Analysis: {w_data.get('analysis')}\n"
+        
+        if w_data.get('gap'):
+            formatted += f"Gap: {w_data.get('gap')}\n"
+            
+        if w_data.get('improvement'):
+            formatted += f"Improvement: {w_data.get('improvement')}\n"
+            
+        formatted += "\n"
+    
+    return formatted.strip()
+
+def format_test_script(test_script: Dict[str, Any]) -> str:
+    """Format operational effectiveness test script into a readable string."""
+    if not test_script:
+        return "No test script provided."
+    
+    formatted = ""
+    
+    if test_script.get('setup'):
+        formatted += f"### Test Setup\n{test_script.get('setup')}\n\n"
+        
+    if test_script.get('steps'):
+        formatted += f"### Test Steps\n"
+        steps = test_script.get('steps')
+        if isinstance(steps, list):
+            for i, step in enumerate(steps, 1):
+                formatted += f"{i}. {step}\n"
+        else:
+            formatted += str(steps)
+        formatted += "\n\n"
+        
+    if test_script.get('success_criteria'):
+        formatted += f"### Success Criteria\n{test_script.get('success_criteria')}\n\n"
+        
+    if test_script.get('evidence'):
+        formatted += f"### Evidence to Collect\n{test_script.get('evidence')}\n\n"
+    
+    return formatted.strip()
+
+def format_design_evaluation(assessment: Dict[str, Any]) -> str:
+    """Format design effectiveness evaluation into a readable string."""
+    if not assessment:
+        return "No design evaluation provided."
+    
+    formatted = ""
+    
+    if assessment.get('strengths'):
+        formatted += f"### Design Strengths\n"
+        strengths = assessment.get('strengths')
+        if isinstance(strengths, list):
+            for strength in strengths:
+                formatted += f"- {strength}\n"
+        else:
+            formatted += str(strengths)
+        formatted += "\n\n"
+        
+    if assessment.get('weaknesses'):
+        formatted += f"### Design Weaknesses\n"
+        weaknesses = assessment.get('weaknesses')
+        if isinstance(weaknesses, list):
+            for weakness in weaknesses:
+                formatted += f"- {weakness}\n"
+        else:
+            formatted += str(weaknesses)
+        formatted += "\n\n"
+        
+    if assessment.get('recommendations'):
+        formatted += f"### Recommendations\n"
+        recommendations = assessment.get('recommendations')
+        if isinstance(recommendations, list):
+            for rec in recommendations:
+                formatted += f"- {rec}\n"
+        else:
+            formatted += str(recommendations)
+        formatted += "\n\n"
+        
+    if assessment.get('rating'):
+        formatted += f"### Overall Rating\n{assessment.get('rating')}\n\n"
+    
+    return formatted.strip()
 
 def generate_operational_effectiveness_script(control_description: str, control_data: Optional[Dict[str, Any]],
                                            llm: Optional[BaseChatModel], api_key: Optional[str]) -> Dict[str, Any]:
@@ -649,29 +655,21 @@ Your test script should follow auditing best practices and be structured to thor
 Provide your test script in the following JSON format:
 
 {{
-  "test_objective": "Clear statement of what the test aims to verify",
-  "scope": "Scope of the test, including timeframe and systems covered",
-  "sampling_approach": "Description of sampling methodology and rationale",
-  "prerequisites": ["List of required items, access, or documents needed before testing"],
-        "test_steps": [
-    {{
-      "step_number": 1,
-      "description": "Detailed description of what to do in this step",
-      "expected_result": "What should be observed if the control is operating effectively"
-    }},
-    ...additional steps...
+  "setup": "Brief description of test preparation and requirements",
+  "steps": [
+    "Step 1: Detailed description of first test step",
+    "Step 2: Detailed description of second test step",
+    "Step 3: Detailed description of third test step"
   ],
-  "evidence_collection": ["Types of evidence that should be collected during testing"],
-  "evaluation_criteria": ["Specific criteria to determine if the control is operating effectively"],
-  "potential_exceptions": ["Common exceptions or issues that might be identified"],
-  "reporting_guidance": "How to report and document findings"
+  "success_criteria": "Description of what constitutes successful control operation",
+  "evidence": "Description of evidence to collect during testing"
 }}
 
 Ensure the test script:
 1. Is comprehensive and covers all aspects of the control
 2. Includes specific, detailed steps that can be followed by an auditor
-3. Has clear expected results for each step
-4. Is practical and realistic to implement"""
+3. Has clear success criteria
+4. Specifies what evidence should be collected"""
 
         # Get the LLM response
         response = llm.invoke(prompt)
@@ -688,7 +686,13 @@ Ensure the test script:
         elif "```" in raw_content:
             json_str = raw_content.split("```")[1].strip()
         else:
-            json_str = raw_content
+            # Try to find JSON object by looking for first { and last }
+            start_idx = raw_content.find('{')
+            end_idx = raw_content.rfind('}')
+            if start_idx >= 0 and end_idx > start_idx:
+                json_str = raw_content[start_idx:end_idx+1]
+            else:
+                json_str = raw_content
             
         try:
             test_script = json.loads(json_str)
@@ -734,76 +738,24 @@ def evaluate_design_effectiveness(control_description: str, control_data: Option
 CONTROL DESCRIPTION:
 {control_description}
 
-Assess the design of this control across these key dimensions:
-- Control objective: Is the objective clear and appropriate?
-- Control type: Is this the right type of control (preventive, detective, corrective)?
-- Coverage: Does it address all relevant risks?
-- Precision: Is it specific and targeted?
-- Frequency: Is it performed at the right intervals?
-- Responsibility: Is ownership clearly assigned?
-- Automation: Is the right level of automation applied?
-- Documentation: Is the control well-documented?
-- Management review: Is there proper oversight?
-
-Provide your evaluation in the following JSON format:
+Assess the design of this control and provide your evaluation in the following JSON format:
 
 {{
-  "control_objective": {{
-    "assessment": "Assessment of the control objective",
-    "score": 4, // Score from 1-5 where 5 is best
-    "recommendation": "Recommendation to improve if needed"
-  }},
-  "control_type": {{
-    "assessment": "Assessment of control type appropriateness",
-    "score": 3,
-    "recommendation": "Recommendation to improve if needed"
-  }},
-  "coverage": {{
-    "assessment": "Assessment of risk coverage",
-    "score": 4,
-    "recommendation": "Recommendation to improve if needed"
-  }},
-  "precision": {{
-    "assessment": "Assessment of control precision",
-    "score": 3,
-    "recommendation": "Recommendation to improve if needed"
-  }},
-  "frequency": {{
-    "assessment": "Assessment of control frequency",
-    "score": 4,
-    "recommendation": "Recommendation to improve if needed"
-  }},
-  "responsibility": {{
-    "assessment": "Assessment of responsibility assignment",
-    "score": 5,
-    "recommendation": "Recommendation to improve if needed"
-  }},
-  "automation": {{
-    "assessment": "Assessment of automation level",
-    "score": 2,
-    "recommendation": "Recommendation to improve if needed"
-  }},
-  "documentation": {{
-    "assessment": "Assessment of documentation quality",
-    "score": 3,
-    "recommendation": "Recommendation to improve if needed"
-  }},
-  "management_review": {{
-    "assessment": "Assessment of management review",
-    "score": 4,
-    "recommendation": "Recommendation to improve if needed"
-  }},
-  "overall_design": {{
-    "assessment": "Overall assessment of design effectiveness",
-    "score": 3,
-    "recommendation": "Overall recommendation"
-  }},
-  "summary": {{
-            "average_score": 3.5,
-    "strengths": ["Key strength 1", "Key strength 2", "Key strength 3"],
-    "weaknesses": ["Key weakness 1", "Key weakness 2"],
-    "priority_improvements": ["Priority improvement 1", "Priority improvement 2"]
-  }}
+  "strengths": [
+    "Strength 1",
+    "Strength 2",
+    "Strength 3"
+  ],
+  "weaknesses": [
+    "Weakness 1",
+    "Weakness 2"
+  ],
+  "recommendations": [
+    "Recommendation 1",
+    "Recommendation 2",
+    "Recommendation 3"
+  ],
+  "rating": "A brief overall rating of the control's design effectiveness"
 }}
 
 Ensure your evaluation is:
@@ -826,7 +778,13 @@ Ensure your evaluation is:
         elif "```" in raw_content:
             json_str = raw_content.split("```")[1].strip()
         else:
-            json_str = raw_content
+            # Try to find JSON object by looking for first { and last }
+            start_idx = raw_content.find('{')
+            end_idx = raw_content.rfind('}')
+            if start_idx >= 0 and end_idx > start_idx:
+                json_str = raw_content[start_idx:end_idx+1]
+            else:
+                json_str = raw_content
             
         try:
             # Clean up any comments in the JSON
@@ -843,160 +801,6 @@ Ensure your evaluation is:
         logger.error(error_msg)
         return {"error": error_msg, "assessment": None}
 
-def generate_executive_summary(control_description: str, analysis_5ws: Optional[Dict], 
-                            test_script: Optional[Dict], design_assessment: Optional[Dict],
-                            llm: Optional[BaseChatModel], api_key: Optional[str]) -> str:
-    """Generate an executive summary of all analyses"""
-    # Placeholder implementation - will be replaced with actual implementation
-    return """
-    This control was evaluated across three dimensions: 5Ws framework analysis, operational effectiveness testing, and design effectiveness.
-    
-    Key findings:
-    - The control shows strengths in clearly defined responsibilities and automation
-    - Improvement areas include documentation and frequency of execution
-    - The overall design is rated 3.5/5, indicating moderate effectiveness
-    - Priority recommendations focus on enhancing documentation and clarifying execution procedures
-    """
-
-def format_control_details(control_data: Dict[str, Any]) -> str:
-    """Format control details for output"""
-    if not control_data:
-        return "Control details not available."
-        
-    result = ""
-    result += f"ID: {control_data.get('id', 'Unknown')}\n"
-    result += f"Name: {control_data.get('name', 'Unknown')}\n"
-    
-    if desc := control_data.get('description'):
-        result += f"Description: {desc}\n"
-    
-    if owner := control_data.get('owner'):
-        result += f"Owner: {owner}\n"
-    
-    if ctrl_type := control_data.get('type'):
-        result += f"Type: {ctrl_type}\n"
-    
-    if category := control_data.get('category'):
-        result += f"Category: {category}\n"
-    
-    if freq := control_data.get('frequency'):
-        result += f"Frequency: {freq}\n"
-    
-    if status := control_data.get('status'):
-        result += f"Status: {status}\n"
-    
-    if risk := control_data.get('risk_category'):
-        result += f"Risk Category: {risk}\n"
-        
-    # Add any other attributes that might be present
-    for key, value in control_data.items():
-        if key not in ['id', 'name', 'description', 'owner', 'type', 'category', 'frequency', 'status', 'risk_category']:
-            if isinstance(value, (str, int, float, bool)):
-                result += f"{key.title()}: {value}\n"
-    
-    return result
-
-def format_5ws_analysis(analysis: Dict[str, Any]) -> str:
-    """Format 5Ws analysis for output"""
-    # Placeholder implementation - will be replaced with actual implementation
-    result = ""
-    
-    # Add each dimension
-    for dimension in ["who", "what", "when", "where", "why"]:
-        dim_data = analysis.get(dimension, {})
-        result += f"### {dimension.upper()}\n"
-        result += f"Analysis: {dim_data.get('analysis', 'Not analyzed')}\n"
-        
-        if gap := dim_data.get('gap'):
-            result += f"Gap: {gap}\n"
-            
-        if improvement := dim_data.get('improvement'):
-            result += f"Improvement: {improvement}\n"
-            
-        result += "\n"
-    
-    # Add overall assessment
-    result += f"### OVERALL ASSESSMENT\n{analysis.get('overall_assessment', 'No overall assessment provided.')}\n\n"
-    
-    # Add priority improvements
-    result += "### PRIORITY IMPROVEMENTS\n"
-    for improvement in analysis.get("priority_improvements", []):
-        result += f"- {improvement}\n"
-        
-    return result
-
-def format_test_script(test_script: Dict[str, Any]) -> str:
-    """Format test script for output"""
-    # Placeholder implementation - will be replaced with actual implementation
-    result = f"Test Objective: {test_script.get('test_objective', 'Not specified')}\n\n"
-    result += f"Scope: {test_script.get('scope', 'Not specified')}\n\n"
-    result += f"Sampling Approach: {test_script.get('sampling_approach', 'Not specified')}\n\n"
-    
-    # Prerequisites
-    result += "### PREREQUISITES\n"
-    for prereq in test_script.get("prerequisites", []):
-        result += f"- {prereq}\n"
-    result += "\n"
-    
-    # Test steps
-    result += "### TEST STEPS\n"
-    for step in test_script.get("test_steps", []):
-        result += f"{step.get('step_number', '?')}. {step.get('description', 'No description')}\n"
-        result += f"   Expected Result: {step.get('expected_result', 'Not specified')}\n\n"
-    
-    return result
-
-def format_design_evaluation(assessment: Dict[str, Any]) -> str:
-    """Format design evaluation for output"""
-    # Placeholder implementation - will be replaced with actual implementation
-    result = ""
-    
-    # Add dimension assessments
-    dimensions = [
-        "control_objective", "control_type", "coverage", "precision", 
-        "frequency", "responsibility", "automation", "documentation", 
-        "management_review", "overall_design"
-    ]
-    
-    for dimension in dimensions:
-        if dimension in assessment:
-            dim_data = assessment.get(dimension, {})
-            result += f"### {dimension.upper().replace('_', ' ')}\n"
-            result += f"Assessment: {dim_data.get('assessment', 'Not assessed')}\n"
-            result += f"Score: {dim_data.get('score', 'N/A')}/5\n"
-            
-            if recommendation := dim_data.get('recommendation'):
-                result += f"Recommendation: {recommendation}\n"
-                
-            result += "\n"
-    
-    # Add summary if it exists
-    if "summary" in assessment:
-        summary = assessment["summary"]
-        result += "### SUMMARY\n"
-        result += f"Average Score: {summary.get('average_score', 'Not calculated')}/5\n\n"
-        
-        if "strengths" in summary:
-            result += "Strengths:\n"
-            for strength in summary["strengths"]:
-                result += f"- {strength}\n"
-            result += "\n"
-            
-        if "weaknesses" in summary:
-            result += "Weaknesses:\n"
-            for weakness in summary["weaknesses"]:
-                result += f"- {weakness}\n"
-            result += "\n"
-            
-        if "priority_improvements" in summary:
-            result += "Priority Improvements:\n"
-            for improvement in summary["priority_improvements"]:
-                result += f"- {improvement}\n"
-    
-    return result
-
 class ControlNotFoundException(Exception):
-    """Custom exception for when a control isn't found"""
-    pass
-
-# This file will be completed with the full implementation of all tools 
+    """Raised when a requested control is not found."""
+    pass 
