@@ -1,210 +1,325 @@
-# BussGPT: Financial & Business Intelligence Agent
+# BMO RiskGPT - Persona-Based AI Agent for Bank of Montreal
 
-BussGPT is an AI-powered financial and business intelligence agent that provides sophisticated analysis of financial data, market information, and earnings call transcripts. It leverages multiple specialized tools and integrates advanced guardrails for safe, reliable operation.
+## Overview
 
-## Core Capabilities
+BMO RiskGPT is an AI assistant designed specifically for Bank of Montreal (BMO) employees. Despite its name, it serves as a general-purpose productivity assistant that combines structured tools for accessing financial data with broader capabilities to assist with everyday office tasks.
 
-- **Financial Data Analysis**: Access historical stock prices, financial metrics, and market data
-- **Credit Risk Assessment**: Analyze counterparty credit risk, exposures, and ratings
-- **Earnings Call Intelligence**: Extract qualitative insights from earnings call transcripts
-- **Market News**: Search for current financial and business news
-- **Multi-Tool Orchestration**: Combine results from multiple data sources for comprehensive answers
+This repository contains the implementation of a persona-based AI agent system built on top of the Anthropic Claude API. The system is designed with a modular architecture that separates the base agent functionality from the persona-specific features, allowing for customization and extension.
 
-## Agent Architecture
+## Key Features
 
-BussGPT implements two agent architectures:
+### Persona System
+- Customized AI identity as "riskgpt" for Bank of Montreal
+- Identity protection mechanisms to maintain consistent persona
+- Dual capability system:
+  - Structured tools for data access
+  - General capabilities for office productivity
 
-### 1. BasicAgent (Latest)
+### Financial Data Access
+- Financial statements and stock prices (2016-2020)
+- Credit risk analysis and counterparty exposures
+- Operational controls analysis
+- Document analysis (SEC filings, earnings calls)
+- Financial news search
 
-The primary agent implementation follows a structured, reliable workflow:
+### General Productivity Support
+- Business document creation
+- Email drafting
+- PowerPoint content creation
+- Project management assistance
+- Meeting preparation
+- Code development and explanation
+
+## Architecture
+
+### Core Components
+
+1. **BasicAgent**: Base class implementing the core agent flow
+   - Guardrail -> Plan -> Confirm -> Execute -> Synthesize pattern
+   - Tool integration and orchestration
+   - Query understanding and contextual awareness
+
+2. **PersonaAgent**: Extension of BasicAgent with persona capabilities
+   - Persona initialization and maintenance
+   - Identity protection mechanisms
+   - Special query handling for persona-related inquiries
+
+3. **Tools**: Individual specialized capabilities
+   - SQL-based financial data access
+   - Document search and analysis
+   - Control analysis frameworks
+   - News and SEC filings analysis
+
+## Implementation Details
+
+### Persona Initialization
+
+The `PersonaAgent` initializes with a persona defined in `prompts/persona_init.txt`. This file contains the detailed definition of capabilities, data sources, and the agent's role at BMO. The initialization process:
+
+1. Loads the persona definition from the filesystem
+2. Creates a system prompt that establishes the agent's identity
+3. Uses the LLM to generate an appropriate greeting
+4. Stores this greeting for consistent responses to identity questions
+
+```python
+def _initialize_persona(self) -> str:
+    """Initialize the agent with the persona."""
+    logger.info("Initializing agent with persona...")
+    if not self.persona:
+        logger.warning("No persona found, skipping initialization")
+        return ""
+    
+    try:
+        system_prompt = """You are riskgpt, a versatile AI assistant for Bank of Montreal (BMO) employees. You have two types of functionality:
+
+        1. STRUCTURED TOOLS - programmatic interfaces you can directly access:
+           - FinancialSQL: Query financial_data.db for balance sheets, income statements, etc.
+           - CCRSQL: Query ccr_reporting.db for credit risk metrics
+           - ControlAnalysis: Analyze operational controls using 5Ws framework
+           - EarningsCallSummary: Extract information from earnings call transcripts
+           - FinancialNewsSearch: Search for financial news
+           - SECFilingsAnalysis: Analyze SEC filings
+
+        2. GENERAL CAPABILITIES - skills you can perform without tools:
+           - Draft emails and business documents
+           - Create PowerPoint presentation content
+           - Generate code and explain technical concepts
+           - Provide office productivity tips
+           - Assist with project management and team collaboration
+           - Help with time management and organization
+        """
+        # ... additional system prompt content ...
+        
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=f"Here is your persona:\n\n{self.persona}\n\nPlease introduce yourself based on this persona, but keep it very brief.")
+        ]
+        
+        response = self.llm.invoke(messages)
+        greeting = response.content.strip()
+        logger.info(f"Persona initialization greeting: {greeting[:100]}...")
+        
+        # Store this in memory as if it were a regular interaction
+        self.memory.append(("agent start mode", greeting))
+        self.persona_initialized = True
+        
+        return greeting
+    except Exception as e:
+        logger.error(f"Error initializing persona: {e}", exc_info=True)
+        return ""
+```
+
+### Identity Maintenance
+
+A key feature of the PersonaAgent is its ability to maintain a consistent identity. This is achieved through:
+
+1. **Special query detection**: Identifying when users ask identity-related questions
+2. **Consistent greeting**: Returning the pre-initialized greeting for identity queries
+3. **Identity filtering**: Preventing "hallucinations" that revert to the base model's identity
+4. **Emergency corrections**: Replacing instances where the base identity leaks through
+
+```python
+def run(self, query: str) -> str:
+    """Enhanced run method that handles persona-specific queries and maintains persona identity."""
+    # Normalize the query by removing punctuation and converting to lowercase
+    normalized_query = query.lower().strip().rstrip('?!.,;:')
+    
+    # Check for special persona-related queries with more flexible matching
+    if (normalized_query == "agent start mode" or 
+        normalized_query == "who are you" or 
+        normalized_query.startswith("based on your persona") or 
+        normalized_query == "what can you do for me" or
+        normalized_query == "what can you do" or
+        normalized_query == "tell me about yourself"):
+        
+        # If the persona is already initialized, return the saved greeting
+        if self.persona_initialized and self.greeting:
+            logger.info("Returning pre-initialized persona greeting")
+            return self.greeting
+        
+        # Otherwise initialize the persona now
+        if self.persona:
+            self.greeting = self._initialize_persona()
+            if self.greeting:
+                return self.greeting
+    
+    # For other queries, use parent class but ensure persona is maintained
+    logger.info("Injecting persona context into response generation")
+    
+    # Call the parent class implementation, which will now use our updated identity reinforcement
+    result = super().run(query)
+    
+    # Additional filtering to catch any missed identity references
+    if hasattr(self, 'llm') and self.persona:
+        if "Claude" in result or "Anthropic" in result or "I don't have access" in result:
+            # Emergency identity correction - apply additional filtering
+            logger.warning("Identity leakage detected in response, applying additional filtering")
+            if hasattr(self.llm, "_filter_response_identity"):
+                result = self.llm._filter_response_identity(result)
+            else:
+                # Back up cleaning with basic replacements
+                result = result.replace("I am Claude", "I am riskgpt")
+                result = result.replace("I'm Claude", "I'm riskgpt")
+                result = result.replace("created by Anthropic", "for BMO")
+                result = result.replace("I don't have access", "I have access")
+    
+    return result
+```
+
+### Tool vs. Capability Distinction
+
+The system clearly distinguishes between two types of functionality:
+
+1. **Structured Tools**: Programmatic interfaces that access specific databases and services, implemented through tool functions.
+2. **General Capabilities**: Skills the agent can perform using its inherent language model abilities, without requiring specific programmatic interfaces.
+
+This distinction is made explicit in the system prompt and allows the agent to properly scope its abilities:
 
 ```
-Guardrail → Plan → Confirm → Execute → Synthesize
+1. STRUCTURED TOOLS - programmatic interfaces you can directly access:
+   - FinancialSQL: Query financial_data.db for balance sheets, income statements, etc.
+   - CCRSQL: Query ccr_reporting.db for credit risk metrics
+   - ControlAnalysis: Analyze operational controls using 5Ws framework
+   - EarningsCallSummary: Extract information from earnings call transcripts
+   - FinancialNewsSearch: Search for financial news
+   - SECFilingsAnalysis: Analyze SEC filings
+
+2. GENERAL CAPABILITIES - skills you can perform without tools:
+   - Draft emails and business documents
+   - Create PowerPoint presentation content
+   - Generate code and explain technical concepts
+   - Provide office productivity tips
+   - Assist with project management and team collaboration
+   - Help with time management and organization
 ```
 
-#### Key Features:
+### Persona Definition
 
-- **Guardrail System**: Pre-processes queries for safety, appropriateness, and capabilities
-- **Planning**: Determines which tools are needed to answer the query
-- **User Confirmation**: Displays the planned approach and waits for user approval
-- **Tool Execution**: Runs the necessary tools sequentially
-- **Answer Synthesis**: Combines tool results into a comprehensive answer
+The persona is defined in `prompts/persona_init.txt` and includes:
 
-#### Agent "Thinking" Display:
-The agent shows its reasoning process through simplified thinking steps, providing transparency into how it approached the query.
+1. **Core identity**: Describing who the agent is and its purpose
+2. **Data sources & capabilities**: Detailed breakdown of the databases and their contents
+3. **General productivity support**: Office tasks the agent can assist with
+4. **Development & educational support**: Technical assistance capabilities
 
-### 2. ReAct Agent (Legacy)
+The content is structured in a human-readable format that serves as input to the LLM for understanding its role and capabilities.
 
-An alternative implementation based on the ReAct (Reasoning and Acting) paradigm.
+## System Workflow
 
-## Setup
+1. **Initialization**:
+   - BasicAgent initializes LLM, tools, database paths
+   - PersonaAgent loads persona definition
+   - PersonaAgent initializes the greeting with LLM
 
-1. Clone this repository
+2. **Query Processing**:
+   - Check if query is persona-related (identity question)
+   - If yes, return pre-initialized greeting
+   - If no, process through the standard agent flow
+
+3. **Standard Agent Flow**:
+   - Follow-up detection: Is this a follow-up to a previous question?
+   - Guardrail check: Is the query appropriate and within capabilities?
+   - Plan generation: What tools are needed to answer this query?
+   - Plan confirmation: User approves the execution plan
+   - Tool execution: Run the selected tools with appropriate inputs
+   - Answer synthesis: Combine tool outputs into a coherent response
+
+4. **Identity Maintenance**:
+   - Filter all responses to ensure consistent persona
+   - Detect and correct identity leakage
+   - Maintain consistent capabilities claims
+
+## Feedback Loop Implementation
+
+The system has been enhanced with a sophisticated feedback loop that extends beyond simple yes/no confirmation:
+
+```python
+def _request_user_feedback(self, original_response: str) -> Dict[str, Any]:
+    """Request detailed feedback from the user and analyze if replanning is needed."""
+    # Prompt user for detailed feedback
+    # Analyze feedback using LLM to determine if replanning is needed
+    # Return analysis with recommendations
+```
+
+```python
+def _replan_based_on_feedback(self, query: str, feedback_analysis: Dict[str, Any]) -> str:
+    """Generate a new plan based on the feedback analysis."""
+    # Use feedback to create a more tailored execution plan
+    # Focus on addressing specific issues raised in feedback
+    # Return new execution plan
+```
+
+The feedback loop:
+1. Collects detailed qualitative feedback
+2. Uses AI to analyze if replanning is needed
+3. Creates a tailored new plan addressing specific feedback
+4. Executes the new plan after user confirmation
+
+## Setup & Usage
+
+### Prerequisites
+- Python 3.9+
+- Anthropic API Key
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/your-org/bmo-riskgpt.git
+cd bmo-riskgpt
+```
+
 2. Create and activate a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
 3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Set your Anthropic API key:
-   ```bash
-   # Create .env file
-   echo "ANTHROPIC_API_KEY=your_api_key_here" > .env
-   ```
-
-## Usage
-
-### CLI Interface
-
-Run the agent in interactive command-line mode:
-
 ```bash
-python main.py
+pip install -r requirements.txt
 ```
 
-### Web Interface
-
-Start the backend server:
-
+4. Set up your environment variables:
 ```bash
-python backend_server.py
+echo "ANTHROPIC_API_KEY=your_api_key_here" > .env
 ```
 
-Then access the web interface via Socket.IO.
+### Running the Agent
 
-## Database Structure
-
-BussGPT works with SQLite databases for financial and credit risk data:
-
-1. **financial_data.db**: Contains historical financial information
-   - Tables: companies, daily_stock_prices, quarterly_income_statement, etc.
-
-2. **ccr_reporting.db**: Contains counterparty credit risk data
-   - Tables: limits, counterparties, exposures, etc.
-
-## Tools
-
-The agent integrates multiple specialized tools:
-
-1. **FinancialSQL**: Queries historical financial data
-2. **CCRSQL**: Queries counterparty credit risk data
-3. **FinancialNewsSearch**: Retrieves current financial news
-4. **EarningsCallSummary**: Analyzes earnings call transcripts
-
-## Query Examples
-
-BussGPT can handle a wide range of financial queries:
-
-- "What was the stock price of Apple on June 2, 2017?"
-- "What is our total exposure to JP Morgan?"
-- "Summarize Microsoft's Q4 2017 earnings call"
-- "What recent news might affect Bank of America's rating?"
-
-## Advanced Features
-
-### Conversation Memory
-
-The agent maintains memory of previous interactions to handle follow-up questions appropriately.
-
-### Emergency Stop
-
-Long-running operations can be interrupted with Ctrl+C while preserving work done so far.
-
-### Thinking Steps Display
-
-The agent shows its reasoning process:
-
-```
-Thinking...
-- Validating query against safety and capability guardrails...
-- Planning which tools are needed to answer your question...
-- Querying financial database: 'What was the stock price of AAPL on...'
-- Database returned results: '('2017-06-02', 36.256385803'...
-- Synthesizing comprehensive answer from all gathered information...
-```
-
-## Development and Testing
-
-Several test scripts are provided to verify agent functionality:
-
+Run the interactive persona agent:
 ```bash
-# Test BasicAgent with sample queries
-python test_basic_agent.py
-
-# Test ReactAgent with sample queries
-python test_react_agent.py
+python run_persona_agent.py
 ```
 
-## Requirements
+This will:
+1. Initialize the persona agent
+2. Display the initial greeting
+3. Start an interactive loop for entering queries
+4. Process queries through the agent system
+5. Display responses
 
-- Python 3.8+
-- Anthropic API key (Claude 3)
-- SQLite
-- Socket.IO (for web interface)
+## Extending the System
 
-## Directory Structure
+### Creating a New Persona
 
-```
-BussGPT/
-├── basic_agent.py        # Main BasicAgent implementation
-├── main.py               # CLI entrypoint
-├── backend_server.py     # Web interface server
-├── tools/                # Tool implementations
-│   ├── ccr_sql_tool.py   # Credit risk data tool
-│   ├── financial_sql_tool.py  # Financial data tool
-│   ├── financial_news_tool.py  # News search tool
-│   └── earnings_call_tool.py  # Transcript analysis tool
-├── scripts/              # Utility scripts
-│   └── data/             # Database files
-├── react_agent/          # Legacy ReAct agent
-└── tests/                # Test scripts
-```
+To create a new persona:
 
-## Transcript Database
+1. Create a new persona definition file (e.g., `prompts/new_persona_init.txt`)
+2. Modify the `_load_persona` method to point to your new file
+3. Update the system prompt in `_initialize_persona` to match the new identity
 
-The system can also work with a MongoDB transcript database. See the [Transcript Database](#transcript-database) section for more details.
+### Adding New Tools
 
-## Transcript Database
+To add a new tool:
 
-This project imports earnings call transcripts into MongoDB for later use with LLM applications.
+1. Create a new tool module in the `tools` directory
+2. Define a main function that takes a query and returns a result
+3. Add the tool to the `tools_map` in the `BasicAgent.__init__` method
+4. Update the system prompt to include the new tool
 
-### Setup Instructions
+## Conclusion
 
-1. Install MongoDB
-   - Download and install MongoDB from https://www.mongodb.com/try/download/community
-   - Start the MongoDB service
+BMO RiskGPT demonstrates a sophisticated approach to building persona-based AI assistants that combine specialized data access tools with general productivity capabilities. The architecture allows for customization and extension, enabling the creation of tailored AI assistants for different organizational contexts.
 
-2. Import transcripts
-   ```bash
-   python import_transcripts.py
-   ```
-
-3. Update documents with metadata (date, quarter, fiscal year)
-   ```bash
-   python update_transcripts.py
-   ```
-
-4. Calculate token counts for LLM usage
-   ```bash
-   python add_token_counts.py
-   ```
-
-### Database Collections
-
-The MongoDB database consists of the following collections:
-
-1. **transcripts**: Contains the actual transcript documents
-2. **document_summaries**: Contains summaries of individual transcripts
-3. **category_summaries**: Contains cross-quarter analyses for each company
-4. **department_summaries**: Contains sector-level summaries across companies
-
-## License
-
-MIT License
-
-## Contributing
-
-We welcome contributions to BussGPT! Please submit pull requests with improvements, bugfixes, or new features. 
+By distinguishing between structured tools and general capabilities, the system provides clarity about what the agent can and cannot do, while maintaining a consistent identity that enhances user trust and engagement. 
