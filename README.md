@@ -1,4 +1,4 @@
-# BMO RiskGPT - Persona-Based AI Agent for Bank of Montreal
+# RiskGPT - Persona-Based AI Agent for Bank of Montreal
 
 ## Overview
 
