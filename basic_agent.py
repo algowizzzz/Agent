@@ -24,6 +24,8 @@ from tools.ccr_sql_tool import run_ccr_sql
 from tools.financial_sql_tool import run_financial_sql
 from tools.financial_news_tool import run_financial_news_search
 from tools.earnings_call_tool import run_transcript_agent
+from tools.control_analysis_tool import run_control_analyzer_agent
+from tools.sec_filings_tool import run_sec_filings_analysis
 
 # Configure logging
 logging.basicConfig(
@@ -71,6 +73,8 @@ class BasicAgent:
                 "FinancialSQL": run_financial_sql,
                 "FinancialNewsSearch": run_financial_news_search,
                 "EarningsCallSummary": run_transcript_agent,
+                "ControlAnalysis": run_control_analyzer_agent,
+                "SECFilingsAnalysis": run_sec_filings_analysis,
             }
             logger.info(f"Tools map initialized with: {list(self.tools_map.keys())}")
             
@@ -199,7 +203,9 @@ The "pass" field should be true for both PASSED and MODIFIED decisions, and fals
             "*   EarningsCallSummary: Finds and analyzes specific company earnings call transcripts (focusing on AAPL, AMD, AMZN, ASML, CSCO, GOOGL, INTC, MSFT, MU, NVDA) for periods roughly 2016-2020 stored in a MongoDB database. Use for qualitative insights: management commentary, strategy discussion, product mentions, Q&A details. Input should specify the company (e.g., 'MSFT') and the desired period (e.g., 'Q1 2017', 'annual 2017'). For comparisons across companies or periods, call this tool separately for each.\n"
             "*   FinancialSQL: Queries a SQL database (`financial_data.db`) containing quantitative financial data (quarterly income statements, balance sheets, daily stock prices, dividends). Use for specific financial figures like revenue, net income, EPS, assets, liabilities, stock price on a specific date, etc. Input is a natural language question about financial data.\n"
             "*   FinancialNewsSearch: Searches the web (currently mocked) for recent financial news articles related to companies, tickers, or market events. Use for latest news, market sentiment analysis, or information about recent events not found in historical databases. Input is a natural language search query.\n"
-            "*   CCRSQL: Queries a SQL database (`ccr_reporting.db`) containing customer care reporting (CCR) data. Use only for questions specifically about CCR metrics, reports, or related internal data. Input is a natural language question about CCR data."
+            "*   CCRSQL: Queries a SQL database (`ccr_reporting.db`) containing customer care reporting (CCR) data. Use only for questions specifically about CCR metrics, reports, or related internal data. Input is a natural language question about CCR data.\n"
+            "*   ControlAnalysis: Analyzes operational controls using the 5Ws framework (Who, What, When, Where, Why). Use for control gap analysis, design effectiveness evaluations, and operational test script generation. Input is a natural language description of the control to analyze.\n"
+            "*   SECFilingsAnalysis: Extracts and analyzes information from SEC filings stored locally (10-K reports, MD&A sections, XBRL documents). Companies available include Microsoft, MicroStrategy, and Bank of Montreal (BMO). Input is a natural language query about specific companies or sections of SEC filings."
         )
         
         # --- Define NEW Planner Prompt --- 
@@ -257,6 +263,18 @@ Example 5:
 User Query: Hi there!
 Generated Plan:
 No tool needed
+
+Example 6:
+User Query: Analyze this control: "Access to the production database is restricted to authorized DBAs only."
+Generated Plan:
+Tool: ControlAnalysis
+Input: Analyze this control: "Access to the production database is restricted to authorized DBAs only."
+
+Example 7:
+User Query: What are Microsoft's key risk factors mentioned in their 10-K report?
+Generated Plan:
+Tool: SECFilingsAnalysis
+Input: What are Microsoft's key risk factors mentioned in their 10-K report?
 
 FINAL INSTRUCTIONS:
 - For EACH tool needed, respond with exactly two lines: 

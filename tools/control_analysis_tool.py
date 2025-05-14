@@ -132,8 +132,8 @@ Examples:
                 end_idx = orchestration_text.rfind('}')
                 if start_idx >= 0 and end_idx > start_idx:
                     orch_json = orchestration_text[start_idx:end_idx+1]
-        else:
-                        orch_json = orchestration_text
+                else:
+                    orch_json = orchestration_text
             
             # Remove any comments in JSON before parsing
             orch_json = re.sub(r'//.*?[\r\n]', '\n', orch_json)
@@ -168,7 +168,7 @@ Examples:
                         
                 if control:
                     results.append(("CONTROL DETAILS", format_control_details(control)))
-        else:
+                else:
                     results.append(("CONTROL LOOKUP", f"Control {specific_id} does not exist in the PRC library."))
             
             elif list_all:
@@ -259,27 +259,27 @@ Examples:
                 for analysis_type in analysis_types:
                     if analysis_type == "5WS":
                         result = analyze_control_5ws(control_to_analyze, None, llm, api_key)
-                if result.get("error"):
-                    results.append(("5Ws ANALYSIS ERROR", result["error"]))
-                else:
-                    formatted_result = format_5ws_analysis(result.get("analysis", {}))
-                    results.append(("5Ws ANALYSIS", formatted_result))
+                        if result.get("error"):
+                            results.append(("5Ws ANALYSIS ERROR", result["error"]))
+                        else:
+                            formatted_result = format_5ws_analysis(result.get("analysis", {}))
+                            results.append(("5Ws ANALYSIS", formatted_result))
                     
                     elif analysis_type == "OE":
                         result = generate_operational_effectiveness_script(control_to_analyze, None, llm, api_key)
-                if result.get("error"):
+                        if result.get("error"):
                             results.append(("OE SCRIPT ERROR", result["error"]))
-                else:
-                    formatted_result = format_test_script(result.get("test_script", {}))
-                    results.append(("OPERATIONAL EFFECTIVENESS TEST SCRIPT", formatted_result))
+                        else:
+                            formatted_result = format_test_script(result.get("test_script", {}))
+                            results.append(("OPERATIONAL EFFECTIVENESS TEST SCRIPT", formatted_result))
                     
                     elif analysis_type == "DE":
                         result = evaluate_design_effectiveness(control_to_analyze, None, llm, api_key)
-                if result.get("error"):
+                        if result.get("error"):
                             results.append(("DE EVALUATION ERROR", result["error"]))
-                else:
-                    formatted_result = format_design_evaluation(result.get("assessment", {}))
-                    results.append(("DESIGN EFFECTIVENESS EVALUATION", formatted_result))
+                        else:
+                            formatted_result = format_design_evaluation(result.get("assessment", {}))
+                            results.append(("DESIGN EFFECTIVENESS EVALUATION", formatted_result))
         
         # Combine results
         if not results:
