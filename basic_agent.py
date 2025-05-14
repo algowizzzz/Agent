@@ -134,12 +134,27 @@ class BasicAgent:
         """
         logger.info("[Guardrail] Checking query against guardrails...")
         
+        # Format conversation history for context
+        conversation_context = ""
+        if self.memory and len(self.memory) > 0:
+            # Get the most recent conversation (just one turn for guardrail check)
+            last_query, last_response = self.memory[-1]
+            # Truncate very long response
+            if len(last_response) > 150:
+                last_response = last_response[:150] + "..."
+            
+            conversation_context = f"\nRecent conversation context:\nPrevious user query: {last_query}\nPrevious assistant response: {last_response}\n\n"
+        
         system_prompt = """You are a helpful but cautious AI assistant. Your role is to evaluate incoming user queries for:
 
 1. Safety: No harmful, illegal, unethical or dangerous content
 2. Appropriateness: No obscene, offensive or discriminatory content
 3. Capabilities: Only financial analysis, data lookup, and business research are within scope
 4. Specificity: Ensure the query is clear and specific enough to be processed
+5. Context: Consider any provided conversation context when evaluating follow-up questions
+
+When processing a query with context from previous conversation, understand that it may reference previous interactions. 
+If the query includes text like "(Context from previous query: '...')", use this context to inform your evaluation.
 
 For EACH query, FIRST determine if it should be:
 - PASSED: The query is safe, appropriate, within scope and specific enough
@@ -157,7 +172,7 @@ THEN respond in the following JSON format ONLY:
 The "pass" field should be true for both PASSED and MODIFIED decisions, and false for REJECTED.
 """
         
-        human_prompt = f"Please evaluate this user query: \"{query}\""
+        human_prompt = f"{conversation_context}Please evaluate this user query: \"{query}\""
         
         try:
             messages = [
@@ -567,26 +582,6 @@ Based *only* on the provided Tool Execution Results Context, formulate a concise
         # Clear previous thinking steps
         self.thinking_steps = []
         
-        # --- 0. Guardrail Check ---
-        logger.info("--- Step 0: Guardrail Check ---")
-        self._add_thinking_step("Validating query against safety and capability guardrails...")
-        guardrail_result = self._guardrail_check(query)
-        
-        if not guardrail_result["pass"]:
-            # Query rejected by guardrail
-            logger.info(f"Query rejected by guardrail: {guardrail_result['message']}")
-            self._add_thinking_step(f"Query rejected: {guardrail_result['message'][:50]}...")
-            
-            # Format thinking steps
-            thinking_output = "Thinking...\n" + "\n".join([f"- {step}" for step in self.thinking_steps])
-            return f"{thinking_output}\n\nI'm unable to process this query: {guardrail_result['message']}"
-        
-        # Update query if it was modified by the guardrail
-        if guardrail_result["query"] != query:
-            logger.info(f"Query modified by guardrail: '{query}' -> '{guardrail_result['query']}'")
-            self._add_thinking_step(f"Clarifying query to: '{guardrail_result['query']}'")
-            query = guardrail_result["query"]
-        
         # --- Check for follow-up questions ---
         contextual_query = query
         is_followup = False
@@ -599,6 +594,30 @@ Based *only* on the provided Tool Execution Results Context, formulate a concise
             logger.info(f"Follow-up detected. Enhanced query: {contextual_query}")
             self._add_thinking_step(f"Recognizing follow-up question related to previous query...")
             is_followup = True
+        
+        # --- 0. Guardrail Check ---
+        logger.info("--- Step 0: Guardrail Check ---")
+        self._add_thinking_step("Validating query against safety and capability guardrails...")
+        # Use contextual_query instead of original query for guardrail check
+        guardrail_result = self._guardrail_check(contextual_query)
+        
+        if not guardrail_result["pass"]:
+            # Query rejected by guardrail
+            logger.info(f"Query rejected by guardrail: {guardrail_result['message']}")
+            self._add_thinking_step(f"Query rejected: {guardrail_result['message'][:50]}...")
+            
+            # Format thinking steps
+            thinking_output = "Thinking...\n" + "\n".join([f"- {step}" for step in self.thinking_steps])
+            return f"{thinking_output}\n\nI'm unable to process this query: {guardrail_result['message']}"
+        
+        # Update query if it was modified by the guardrail but maintain context
+        if guardrail_result["query"] != contextual_query:
+            logger.info(f"Query modified by guardrail: '{contextual_query}' -> '{guardrail_result['query']}'")
+            self._add_thinking_step(f"Clarifying query to: '{guardrail_result['query']}'")
+            contextual_query = guardrail_result["query"]
+            # Also update the original query if not a follow-up
+            if not is_followup:
+                query = guardrail_result["query"]
         
         # --- 1. Generate Plan --- 
         logger.info("--- Step 1: Generating Plan ---")
