@@ -1,0 +1,220 @@
+---
+### **1. Data Model
+
+### **1. Entities Overview**
+
+### **Users**
+
+- `user_id` (PK)
+- `name`
+- `email`
+- `role` (Enum: super_admin, domain_admin, subdomain_admin, user)
+- `assigned_domain_id` (FK → Domain)
+- `assigned_subdomain_id` (FK → Subdomain)
+
+### **Domains**
+
+- `domain_id` (PK)
+- `name`
+
+### **Subdomains**
+
+- `subdomain_id` (PK)
+- `name`
+- `domain_id` (FK → Domain)
+
+---
+
+### **2. Data Layers**
+
+### **DataResources**
+
+- `data_id` (PK)
+- `name`
+- `type` (Enum: bmo, domain, subdomain, external, user_specific)
+- `owner_user_id` (nullable, for user-specific data) (FK → Users)
+- `domain_id` (nullable, for domain data) (FK → Domains)
+- `subdomain_id` (nullable, for subdomain data) (FK → Subdomains)
+- `access_level` (Enum: public, domain_only, subdomain_only, private_user)
+
+---
+
+### **3. Prompts**
+
+### **PromptTemplates**
+
+- `prompt_id` (PK)
+- `name`
+- `template_text`
+- `scope` (Enum: global, domain, subdomain, user_specific)
+- `created_by_user_id` (FK → Users)
+- `domain_id` (nullable)
+- `subdomain_id` (nullable)
+- `owner_user_id` (nullable)
+
+---
+
+### **4. Conversation History**
+
+### **Conversations**
+
+- `conversation_id` (PK)
+- `user_id` (FK → Users)
+- `started_at`
+- `ended_at`
+- `domain_id` (nullable)
+- `subdomain_id` (nullable)
+
+### **Messages**
+
+- `message_id` (PK)
+- `conversation_id` (FK → Conversations)
+- `sender` (Enum: user, assistant)
+- `timestamp`
+- `content`
+
+---
+
+### **5. Access Control Logic**
+
+The system enforces access using the following rules:
+
+- **Super Admin**: Full access to all data and prompts.
+- **Domain Admin**: Can access BMO, domain, and external data/prompts in their domain.
+- **Subdomain Admin**: Access to BMO, their domain, their subdomain, and external data/prompts.
+- **Users**:
+    - Can access BMO, external, and domain/subdomain data only if part of that group.
+    - Only see their own user-specific data and prompts.
+    - Only see their own conversation histories.
+
+---
+
+---
+
+## ✅ **Final Directory Structure**
+
+```
+/data/
+  /bmo/
+    - <bmo_file_1>.json
+    - <bmo_file_2>.csv
+  /domains/
+    /ERPM/
+      - erpm_policy_guide.pdf
+      /subdomains/
+        /MarketRisk/
+          - stress_test_models.xlsx
+          - var_limit_summary.json
+  /external/
+    - osfi_guidelines.pdf
+    - third_party_models.csv
+  /user_data/
+    /user_123/
+      - notes.json
+      - uploads/
+        - uploaded_model.py
+
+```
+
+```
+/prompts/
+  /global/
+    - onboarding_greeting.txt
+    - summarize_anything.txt
+  /domains/
+    /ERPM/
+      - risk_policy_prompt.txt
+  /subdomains/
+    /ERPM/MarketRisk/
+      - var_analysis_prompt.txt
+  /user_specific/
+    /user_123/
+      - daily_briefing_custom.txt
+
+```
+
+```
+/conversations/
+  /user_123/
+    - chat_001.json
+    - chat_002.json
+
+```
+
+---
+
+## 🧾 **Metadata Schema for Each Layer**
+
+Metadata for each resource in a sidecar `.meta.json` file or a central metadata DB.  metadata schema per file/resource:
+
+### `resource.meta.json`
+
+```json
+{
+  "resource_id": "uuid-or-hash",
+  "name": "stress_test_models.xlsx",
+  "path": "/data/domains/ERPM/subdomains/MarketRisk/stress_test_models.xlsx",
+  "type": "data",
+  "category": "subdomain",
+  "domain": "ERPM",
+  "subdomain": "MarketRisk",
+  "owner_user_id": null,
+  "visibility": "restricted",
+  "created_at": "2025-05-24T16:00:00Z",
+  "updated_at": "2025-05-24T16:30:00Z"
+}
+
+```
+
+### `prompt.meta.json`
+
+```json
+{
+  "prompt_id": "var_analysis_prompt",
+  "name": "VaR Analysis Prompt",
+  "scope": "subdomain",
+  "domain": "ERPM",
+  "subdomain": "MarketRisk",
+  "owner_user_id": null,
+  "created_by": "subdomain_admin_001",
+  "created_at": "2025-05-22T10:12:00Z"
+}
+
+```
+
+### `conversation.meta.json`
+
+```json
+{
+  "conversation_id": "chat_001",
+  "user_id": "user_123",
+  "started_at": "2025-05-23T14:00:00Z",
+  "ended_at": "2025-05-23T14:17:00Z",
+  "summary": "User asked about ERPM VaR model inputs and configuration.",
+  "linked_data_resources": [
+    "/data/domains/ERPM/subdomains/MarketRisk/var_limit_summary.json"
+  ]
+}
+
+```
+
+---
+
+## 🔐 Permissions Matrix Summary
+
+| Layer | Who Can Access |
+| --- | --- |
+| `/data/bmo/` | Everyone |
+| `/data/domains/*` | Users in the matching domain |
+| `/data/.../subdomains/*` | Only users in that subdomain |
+| `/data/external/` | Everyone |
+| `/data/user_data/` | Only the respective user |
+| `/prompts/global/` | Everyone |
+| `/prompts/domains/` | Domain members and above |
+| `/prompts/subdomains/` | Subdomain members and above |
+| `/prompts/user_specific/` | Only that user |
+| `/conversations/` | Only the user themselves (or admin for audits) |
+
+---
+
+![image.png](attachment:68cbad48-9368-47fb-b1d9-ec19ca5bc639:image.png)
