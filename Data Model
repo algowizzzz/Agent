@@ -1,3 +1,110 @@
+Here’s a **business-level breakdown** of the ER diagram you’re working with. I’ll explain each component in plain language and describe how they interconnect based on roles, permissions, and functionality in your AI system.
+
+---
+
+### 🔹 **1. Users**
+
+* **What it is**: Represents every person who interacts with the system—whether they are analysts, domain experts, or system admins.
+* **Key Roles**:
+
+  * **Super Admin**: Full control over all data and prompts.
+  * **Domain Admin**: Controls domain-level access (e.g., ERPM).
+  * **Subdomain Admin**: Manages subdomain-level data (e.g., Market Risk under ERPM).
+  * **Standard User**: Has limited access based on what they’re assigned to.
+* **Key Links**:
+
+  * Connected to a **Domain** and optionally a **Subdomain**, which determines what data and prompts they can see.
+
+---
+
+### 🔹 **2. Domains**
+
+* **What it is**: Broad business categories like **ERPM** or **Finance** or **Audit** or **Technology**
+* **Business Analogy**: Think of a domain as a department or vertical.
+* **Use**: Organizes both data and prompt templates by department.
+
+---
+
+### 🔹 **3. Subdomains**
+
+* **What it is**: More focused units within a domain. For example, **Market Risk** is a subdomain within **ERPM**.
+* **Use**: Enables fine-grained access and more tailored prompts for specialized teams.
+
+---
+
+### 🔹 **4. Data Resources**
+
+* **What it is**: All the files and datasets your system uses (PDFs, Excel sheets, SQL, codebase, etc.).
+* **Types**:
+
+  * **BMO Data**: Internal and accessible to everyone.
+  * **Domain/Subdomain Data**: Only accessible by assigned users.
+  * **External Data**: Public sources like OSFI.
+  * **User-Specific Data**: Only visible to the user who uploaded it.
+* **Use**: Powers document intelligence, retrieval, and analysis.
+* **Ownership**:
+
+  * Some files belong to individuals (user-specific),
+  * Others belong to departments or risk teams.
+
+---
+
+### 🔹 **5. Prompt Templates**
+
+* **What it is**: Pre-written instructions used to guide the AI assistant (e.g., “summarize a risk model”).
+* **Scoped Access**:
+
+  * **Global Prompts**: Available to all.
+  * **Domain Prompts**: Tailored to teams like ERPM.
+  * **Subdomain Prompts**: Very specific to subteams like Market Risk.
+  * **User-Specific Prompts**: Created and used privately by individuals.
+* **Use**: Enables smart, consistent AI output across different teams.
+
+---
+
+### 🔹 **6. Conversations**
+
+* **What it is**: Tracks chat history between each user and the AI.
+* **Use**:
+
+  * Provides memory/context for personalized interactions.
+  * Enables audit trails or knowledge retention.
+* **Tied To**: Individual users only (for privacy and personalization).
+
+---
+
+### 🔹 **7. Messages**
+
+* **What it is**: The actual exchanges within a conversation (user question, AI answer, etc.).
+* **Use**: Captures dialogue so you can analyze past interactions, improve prompt design, or continue ongoing tasks.
+
+---
+
+### 📎 **How It All Connects**
+
+| Functionality        | Behind-the-Scenes Link                                                                   |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| A user runs a prompt | `PromptTemplates` are filtered by the user's domain/subdomain/user ID                    |
+| A file is retrieved  | `DataResources` are filtered based on domain and subdomain assignments                   |
+| AI customizes output | `Users → Conversations → Messages` form the chat memory                                  |
+| Permissions enforced | `Users` are linked to `Domains` and `Subdomains`, which constrain data and prompt access |
+
+---
+
+### ✅ **In Practice**
+
+* A **Market Risk Analyst (User 123)** can:
+
+  * Access `/data/domains/ERPM/subdomains/MarketRisk/`
+  * Use `/prompts/subdomains/ERPM/MarketRisk/`
+  * View only their own `/user_data/user_123/` and `/conversations/user_123/`
+* A **Super Admin** can:
+
+  * Access and modify everything across all users, domains, and prompts.
+
+---
+
+
 ---
 ### **1. Data Model
 
